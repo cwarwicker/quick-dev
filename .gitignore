@@ -1,0 +1,7 @@
+# Ignore these.
+sites/*
+logs/*
+.idea/
+
+# But don't ignore these.
+!*/.gitkeep

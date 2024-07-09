@@ -1,0 +1,35 @@
+services:
+    web:
+        container_name: %project.name%-web
+        image: %project.image%
+        build:
+            context: %root%/images/%project.image%
+        ports:
+            - %project.port%:80
+        volumes:
+            - ./:/var/www/site/
+        networks:
+            - quick-dev-network
+
+    db:
+        container_name: %project.name%-db
+        stdin_open: true
+        image: mariadb:11.2.4
+        ports:
+            - 3336:3306
+        command: >
+            --character-set-server=utf8mb4
+            --collation-server=utf8mb4_bin
+            --innodb_file_per_table=On
+            --wait-timeout=28800
+        environment:
+            MYSQL_ROOT_PASSWORD: "password"
+            MYSQL_USER: user
+            MYSQL_PASSWORD: password
+            MYSQL_DATABASE: main
+        networks:
+            - quick-dev-network
+            
+networks:
+    quick-dev-network:
+        external: true 

@@ -1,0 +1,2 @@
+export QUICK_DEV_PATH=~/dev
+alias qd="ruby $QUICK_DEV_PATH/scripts/run.rb"

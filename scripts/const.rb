@@ -1,0 +1,2 @@
+QUICK_DEV_PATH = ENV['QUICK_DEV_PATH']
+QUICK_DEV_NETWORK = "quick-dev-network"
