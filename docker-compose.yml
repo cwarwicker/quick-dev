@@ -9,6 +9,14 @@ services:
             driver: 'none'
         networks:
             - quick-dev-network
+    adminer:
+        container_name: quick-dev-adminer
+        image: ghcr.io/shyim/adminerevo:latest
+        restart: always
+        ports:
+            - 8080:8080
+        networks:
+            - quick-dev-network
 networks:
     quick-dev-network:
         external: true 

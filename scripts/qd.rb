@@ -163,6 +163,7 @@ class QuickDev
         self.say("Site will be rendered at: #{self.project.url}")
         self.say("Other services:")
         self.say("- Mail: http://mail.#{self.project.hostname}.dev.io:8025")
+        self.say("- Adminer: http://adminer.#{self.project.hostname}.dev.io:8080?server=#{self.project.name}-db&username=user&db=main")
         self.say("====================")
     
     end

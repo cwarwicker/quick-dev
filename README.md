@@ -1,5 +1,7 @@
 # quick-dev
 
+`git submodule update --init --recursive` to clone submodules
+
 `mkdir ~/.config/quick-dev`
 
 `cp config ~/.config/quick-dev` Change path if it's wrong
