@@ -7,7 +7,7 @@ class Project
     
     ENV_FILE = '.quick-dev.env'
     
-    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :dir
+    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :dir, :working_dir
     
     def initialize()
         
@@ -35,6 +35,7 @@ class Project
         @type = ENV['PROJECT_TYPE']
         @image = ENV['PROJECT_IMAGE']
         @port = ENV['PROJECT_PORT']
+        @working_dir = ENV['PROJECT_WORKING_DIR']
         
         # If any of the required info is missing, we cna go no further.
         if self.type.empty? || self.image.empty? || self.port.empty?

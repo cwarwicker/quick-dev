@@ -112,7 +112,7 @@ class QuickDev
         if !ARGV[1].nil?
             container = ARGV[1]
         else
-            container = self.project.name + '-web'
+            container = self.project.name + '-app'
         end
         
         system("docker exec -it --user ubuntu #{container} bash")
@@ -130,7 +130,7 @@ class QuickDev
     
     # Start the project containers.
     def run_up()
-    
+
         # Define additional arguments which can be passed to the `up` command.
         options = {}
         OptionParser.new do |opts|
@@ -159,11 +159,23 @@ class QuickDev
         # Bring up project containers.
         system("docker compose up -d")
         
+        # Install debugging services and configuration to work with buggregator.
+        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev spatie/ray -W")
+        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev sentry/sentry -W")
+        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev inspector-apm/inspector-php -W")
+        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev spiral-packages/profiler -W")
+
+        Dir.glob(QUICK_DEV_PATH + '/templates/.config/*.php').each do |file_name|
+            self.copy_template(file_name, self.project.dir + '/.debug/')
+        end
+
         self.say("====================")
         self.say("Site will be rendered at: #{self.project.url}")
-        self.say("Other services:")
-        self.say("- Mail: http://mail.#{self.project.hostname}.dev.io:8025")
-        self.say("- Adminer: http://adminer.#{self.project.hostname}.dev.io:8080?server=#{self.project.name}-db&username=user&db=main")
+        self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
+        self.say("====================")
+        self.say("Services:")
+        self.say("🗄️   Adminer: http://adminer.#{self.project.hostname}.dev.io:8080?server=#{self.project.name}-db&username=user&db=main")
+        self.say("🐞   Buggregator: http://buggregator.#{self.project.hostname}.dev.io:8000")
         self.say("====================")
     
     end
@@ -227,7 +239,7 @@ class QuickDev
     
     # Copy template files into the project directory
     # @param [String] file_name The template file to copy
-    def copy_template(file_name)
+    def copy_template(file_name, project_path = nil)
         
         # Replace placeholders with project values in the copied files.
         replace_map = {
@@ -236,10 +248,19 @@ class QuickDev
             '%project.port%' => self.project.port,
             '%project.path%' => self.project.path,
             '%project.url%' => self.project.url,
+            '%project.working_dir%' => self.project.working_dir,
             '%root%' => QUICK_DEV_PATH,
         }
         
-        project_path = self.project.dir + '/'  
+        # If we didn't specify a directory, use the root.
+        if project_path.nil?
+            project_path = self.project.dir + '/'
+        end
+
+        # If the directory doesn't exist, create it.
+        unless File.directory?(project_path)
+            FileUtils.mkdir_p(project_path)
+        end
         
         # This creates a "|" separated string with all the keys from the map.
         re = Regexp.new(replace_map.keys.map { |x| Regexp.escape(x) }.join('|'))

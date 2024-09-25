@@ -36,5 +36,8 @@ ADD php.ini /etc/php/8.2/apache2/conf.d/99-custom.ini
 # Install Composer.
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
+# Working directory.
+WORKDIR /var/www/site
+
 # Start apache.
 CMD /usr/sbin/apache2ctl -D FOREGROUND

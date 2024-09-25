@@ -1,6 +1,6 @@
 services:
     web:
-        container_name: %project.name%-web
+        container_name: %project.name%-app
         image: %project.image%
         build:
             context: %root%/images/%project.image%
