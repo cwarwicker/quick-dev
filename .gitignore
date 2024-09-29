@@ -1,6 +1,7 @@
 # Ignore these.
 sites/*
 logs/*
+.k8s/*
 .idea/
 
 # But don't ignore these.
