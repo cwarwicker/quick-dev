@@ -61,13 +61,15 @@ class QuickDev
                 self.run_connect()
             when 'remove'
                 self.run_remove()
+            when 'cluster'
+                self.run_cluster()
             else
                 abort('Invalid command. Run `qd -h` for help.')
 
         end
     
     end
-    
+
     def run_help()
        
         puts <<-HELP
@@ -88,6 +90,42 @@ class QuickDev
             
         HELP
             
+    end
+
+    def run_cluster()
+
+        command = ARGV[1]
+
+        case command
+
+            when 'setup'
+                self.run_cluster_setup()
+            when 'destroy'
+                self.run_cluster_destroy()
+            else
+                abort('Invalid command. Run `qd -h` for help.')
+
+        end
+
+    end
+
+    def run_cluster_setup()
+
+        self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
+        system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
+        system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
+        system("minikube start --driver=docker")
+        system("minikube kubectl -- create namespace #{self.project.name}")
+
+
+    end
+
+    def run_cluster_destroy()
+
+        self.say("Destroying cluster (#{self.project.name})")
+        system("minikube kubectl -- delete namespace #{self.project.name}")
+
+
     end
     
     # Remove the project from quick-dev.
