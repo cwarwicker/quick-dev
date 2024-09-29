@@ -1,0 +1,17 @@
+%project.uri% {
+
+    root * /srv/www/%project.name%/public
+    file_server
+    tls internal
+
+    php_fastcgi %project.name%-app:9000 {
+        root /var/www/site/public
+    }
+
+    log {
+        output file /var/log/caddy/%project.name%.access.log
+        format console
+    }
+
+}
+

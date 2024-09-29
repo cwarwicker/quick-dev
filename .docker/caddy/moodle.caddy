@@ -1,0 +1,17 @@
+moodle.localhost {
+
+    root * /srv/www/moodle
+    file_server
+    tls internal
+
+    php_fastcgi moodle-app:9000 {
+        root /var/www/site
+    }
+
+    log {
+        output file /var/log/caddy/moodle.access.log
+        format console
+    }
+
+}
+

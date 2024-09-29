@@ -1,5 +1,5 @@
 <?php
-namespace Debug;
+namespace .config templates\.config;
 
 class Profiler
 {

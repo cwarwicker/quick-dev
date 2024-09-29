@@ -1,5 +1,5 @@
 <?php
-namespace Debug;
+namespace .config templates\.config;
 
 /**
  * Service container for any debugging tools which require objects.

@@ -7,7 +7,7 @@ class Project
     
     ENV_FILE = '.quick-dev.env'
     
-    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :dir, :working_dir
+    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :uri, :dir, :working_dir
     
     def initialize()
         
@@ -34,16 +34,16 @@ class Project
         Dotenv.load(self.dir + '/' + ENV_FILE)
         @type = ENV['PROJECT_TYPE']
         @image = ENV['PROJECT_IMAGE']
-        @port = ENV['PROJECT_PORT']
         @working_dir = ENV['PROJECT_WORKING_DIR']
         
         # If any of the required info is missing, we cna go no further.
-        if self.type.empty? || self.image.empty? || self.port.empty?
+        if self.type.empty? || self.image.empty?
             abort("Missing required information in #{ENV_FILE}")
         end
         
         # Other variables about the project, not from env file.
-        @url = 'http://' + self.name + '.' + self.hostname + '.dev.io:' + self.port
+        @uri = self.name + '.localhost'
+        @url = 'https://' + self.name + '.localhost'
         
     end
     

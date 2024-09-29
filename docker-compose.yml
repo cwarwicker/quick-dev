@@ -18,6 +18,19 @@ services:
             - "2112:2112"
         networks:
             - quick-dev-network
+    caddy:
+        container_name: caddy
+        image: caddy:latest
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./sites/:/srv/www
+            - ./.docker/images/php-fpm/Caddyfile:/etc/caddy/Caddyfile
+            - ./.docker/caddy:/etc/caddy/sites
+        networks:
+            - quick-dev-network
+
 networks:
     quick-dev-network:
         external: true

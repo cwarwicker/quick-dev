@@ -3,9 +3,7 @@ services:
         container_name: %project.name%-app
         image: %project.image%
         build:
-            context: %root%/images/%project.image%
-        ports:
-            - %project.port%:80
+            context: %root%/.docker/images/%project.image%
         volumes:
             - ./:/var/www/site/
         networks:

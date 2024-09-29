@@ -115,7 +115,7 @@ class QuickDev
             container = self.project.name + '-app'
         end
         
-        system("docker exec -it --user ubuntu #{container} bash")
+        system("docker exec -it #{container} bash")
         
     end
     
@@ -125,6 +125,10 @@ class QuickDev
         # Create the quick-dev network.
         self.say("Creating quick-dev-network...")
         system("docker network create quick-dev-network | tee -a #{self.log}")
+
+        # Create any core local images we will build from.
+        self.say("Building local php-fpm image...")
+        system("docker build -t quick-dev:php ./.docker/images/php-fpm")
     
     end
     
@@ -136,6 +140,7 @@ class QuickDev
         OptionParser.new do |opts|
             opts.banner = "Usage: qd add [options]"
             opts.on('-r', '--rebuild', 'Rebuild the docker image(s)') { options[:rebuild] = 'rebuild' }
+            opts.on('-d', '--install-debug', 'Install debugging packages (Run first time you up the project)') { options[:debug] = 'debug' }
         end.parse!
         
         # Make sure the docker-compose file has been created by the `add` command.
@@ -158,15 +163,19 @@ class QuickDev
         
         # Bring up project containers.
         system("docker compose up -d")
-        
-        # Install debugging services and configuration to work with buggregator.
-        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev spatie/ray -W")
-        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev sentry/sentry -W")
-        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev inspector-apm/inspector-php -W")
-        system("docker exec -it --user ubuntu #{self.project.name}-app composer require --dev spiral-packages/profiler -W")
 
-        Dir.glob(QUICK_DEV_PATH + '/templates/.config/*.php').each do |file_name|
-            self.copy_template(file_name, self.project.dir + '/.debug/')
+        if options[:debug]
+        
+            # Install debugging services and configuration to work with buggregator.
+            system("docker exec -it #{self.project.name}-app composer require --dev spatie/ray -W")
+            system("docker exec -it #{self.project.name}-app composer require --dev sentry/sentry -W")
+            system("docker exec -it #{self.project.name}-app composer require --dev inspector-apm/inspector-php -W")
+            system("docker exec -it #{self.project.name}-app composer require --dev spiral-packages/profiler -W")
+
+            Dir.glob(QUICK_DEV_PATH + '/.docker/templates/.config/*.php').each do |file_name|
+                self.copy_template(file_name, self.project.dir + '/.debug/')
+            end
+
         end
 
         self.say("====================")
@@ -174,8 +183,8 @@ class QuickDev
         self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
         self.say("====================")
         self.say("Services:")
-        self.say("🗄️   Adminer: http://adminer.#{self.project.hostname}.dev.io:8080?server=#{self.project.name}-db&username=user&db=main")
-        self.say("🐞   Buggregator: http://buggregator.#{self.project.hostname}.dev.io:8000")
+        self.say("🗄️   Adminer: http://adminer.#{self.project.hostname}.localhost:8080?server=#{self.project.name}-db&username=user&db=main")
+        self.say("🐞   Buggregator: http://buggregator.#{self.project.hostname}.localhost:8000")
         self.say("====================")
     
     end
@@ -223,12 +232,12 @@ class QuickDev
     def run_add()
             
         # Find all the global templates to be copied across.
-        Dir.glob(QUICK_DEV_PATH + '/templates/*.template').each do |file_name|
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
             self.copy_template(file_name)
         end
         
         # Then any project type specific ones.
-        Dir.glob(QUICK_DEV_PATH + '/templates/' + self.project.type + '/*.template').each do |file_name|
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.template').each do |file_name|
             self.copy_template(file_name)
         end
         
@@ -248,6 +257,7 @@ class QuickDev
             '%project.port%' => self.project.port,
             '%project.path%' => self.project.path,
             '%project.url%' => self.project.url,
+            '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
             '%root%' => QUICK_DEV_PATH,
         }
@@ -273,9 +283,17 @@ class QuickDev
         
         # This makes the replacements in the file. Not entirely sure how it works.
         File.write(new_file_name, File.open(new_file_name, &:read).gsub(re, replace_map))
-        
+
         self.say("#{file_name} ==> #{new_file_name}")
-    
+
+        # If it's the Caddy template, move it into the .docker/caddy directory as well, to be loaded into caddy container.
+        if File.basename(file_name) == 'caddy.template'
+            caddy_path = QUICK_DEV_PATH + '/.docker/caddy/' + self.project.name + '.caddy'
+            FileUtils.cp(new_file_name, caddy_path)
+            self.say("#{file_name} ==> #{caddy_path}")
+        end
+        
+
     end
 
 end
