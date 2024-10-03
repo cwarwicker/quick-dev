@@ -3,6 +3,8 @@ sites/*
 logs/*
 .k8s/*
 .idea/
+.gitlab-token
+.docker/caddy/*
 
 # But don't ignore these.
 !*/.gitkeep
