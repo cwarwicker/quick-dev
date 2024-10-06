@@ -298,8 +298,17 @@ class QuickDev
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
             '%root%' => QUICK_DEV_PATH,
+            '%context%' => '',
         }
-        
+
+        # Work out if we need the build context or not in the docker-compose file.
+        image_path = QUICK_DEV_PATH + '/.docker/images/' + self.project.image
+        if File.directory?(image_path)
+           replace_map['%context%'] = "
+        build:
+            context: #{image_path}"
+        end
+
         # If we didn't specify a directory, use the root.
         if project_path.nil?
             project_path = self.project.dir + '/'
@@ -330,7 +339,9 @@ class QuickDev
             FileUtils.cp(new_file_name, caddy_path)
             self.say("#{file_name} ==> #{caddy_path}")
         end
-        
+
+        exit
+
 
     end
 

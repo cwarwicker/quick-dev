@@ -1,13 +1,12 @@
 services:
     web:
         container_name: %project.name%-app
-        image: %project.image%
-        build:
-            context: %root%/.docker/images/%project.image%
+        image: %project.image%%context%
         volumes:
             - ./:/var/www/site/
         networks:
             - quick-dev-network
+        pull_policy: always
 
     db:
         container_name: %project.name%-db
