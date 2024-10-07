@@ -1,0 +1,14 @@
+diff --git a/lib/setuplib.php b/lib/setuplib.php
+index a67355e3a56..07047826ccd 100644
+--- a/lib/setuplib.php
++++ b/lib/setuplib.php
+@@ -878,6 +878,9 @@ function setup_get_remote_url() {
+         // built-in PHP Development Server
+         $rurl['fullpath'] = $_SERVER['REQUEST_URI'];
+ 
++    } else if (strpos($_SERVER['SERVER_SOFTWARE'], 'Caddy') === 0) {
++        $rurl['fullpath'] = $_SERVER['REQUEST_URI']; // TODO: verify this is always properly encoded
++
+     } else {
+         throw new moodle_exception('unsupportedwebserver', 'error', '', $_SERVER['SERVER_SOFTWARE']);
+     }

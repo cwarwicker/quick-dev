@@ -25,7 +25,7 @@ $CFG->cachetemplates = false; // NOT FOR PRODUCTION SERVERS!
 $CFG->langstringcache = false; // NOT FOR PRODUCTION SERVERS!
 $CFG->showcrondebugging = true;
 $CFG->site_is_public = false;
-$CFG->smtphosts = 'quick-dev-mail:1025';
+$CFG->smtphosts = 'quick-dev-debug:1025';
 $CFG->smtpuser = '';
 $CFG->smtppass = '';
 

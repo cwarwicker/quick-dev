@@ -2,6 +2,7 @@ require 'fileutils'
 require 'optparse'
 require_relative 'project.rb'
 require_relative 'const.rb'
+Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
 
 class QuickDev
     
@@ -63,6 +64,8 @@ class QuickDev
                 self.run_remove()
             when 'cluster'
                 self.run_cluster()
+            when 'cmd'
+                self.run_cmd()
             else
                 abort('Invalid command. Run `qd -h` for help.')
 
@@ -86,10 +89,35 @@ class QuickDev
             connect         Opens terminal connection to a project container (default: web)
                             [name] Specific container to connect to
             remove          Completely remove the project from quick-dev
+            cmd             Runs a project-specific command.
+                            [command] The command to run. E.g. for a Moodle project "install".
                         
             
         HELP
             
+    end
+
+    def get_class(class_name)
+
+       # If the class exists return a new instance of it. Else return false.
+       return Module.const_get(class_name).new
+       rescue NameError
+           return false
+
+    end
+
+    def run_cmd()
+
+        command = ARGV[1]
+
+        project_class = self.get_class(self.project.type.capitalize)
+        if project_class and project_class.respond_to?(command)
+            container = self.project.name + '-app'
+            project_class.send(command, container)
+        else
+            self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
+        end
+
     end
 
     def run_cluster()
@@ -268,22 +296,32 @@ class QuickDev
     
     # Add the site to Quick-Dev
     def run_add()
-            
+
         # Find all the global templates to be copied across.
         Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
             self.copy_template(file_name)
         end
-        
+
         # Then any project type specific ones.
         Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.template').each do |file_name|
             self.copy_template(file_name)
+        end
+
+        # Run any git patches which are required.
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.patch').each do |file_name|
+            self.apply_patch(file_name)
         end
         
         self.say("Added #{self.project.name} (#{self.project.image}) to quick-dev")
         self.say("Run `qd up` to start the project")
     
     end
-    
+
+    def apply_patch(patch_name)
+        self.say("Applying git patch #{patch_name}")
+        system("git apply #{patch_name}")
+    end
+
     # Copy template files into the project directory
     # @param [String] file_name The template file to copy
     def copy_template(file_name, project_path = nil)
@@ -339,9 +377,6 @@ class QuickDev
             FileUtils.cp(new_file_name, caddy_path)
             self.say("#{file_name} ==> #{caddy_path}")
         end
-
-        exit
-
 
     end
 
