@@ -7,12 +7,14 @@ class Project
     
     ENV_FILE = '.quick-dev.env'
     
-    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :uri, :dir, :working_dir
+    attr_accessor :type, :name, :image, :repo, :branch, :path, :port, :ip, :hostname, :built, :url, :uri, :dir, :working_dir, :tname
     
     def initialize()
         
-        # Work out the project name from the path, as we want to be able to call commands from any subdir. 
-        @name = Pathname(Dir.pwd.delete_prefix(QUICK_DEV_PATH + '/sites/')).parent.to_s
+        # Work out the project name from the path, as we want to be able to call commands from any subdir.
+        Pathname(Dir.pwd.delete_prefix(QUICK_DEV_PATH + '/sites/')).ascend do |value|
+            @name = value.to_s
+        end
         
         # If we are already at the top level of the project, get the current dir name instead.
         if self.name == '.'
