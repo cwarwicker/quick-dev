@@ -1,6 +1,12 @@
 # Use base php image.
 FROM quick-dev:php
 
+RUN apt-get install -y nodejs npm
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+
+RUN nvm install 20.11
+
 # Installing additional PHP modules needed by moodle.
 RUN docker-php-ext-install curl dom gd intl mbstring mysqli pdo_mysql xml zip
 

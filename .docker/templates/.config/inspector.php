@@ -1,5 +1,5 @@
 <?php
-namespace .config templates\.config;
+namespace Debug;
 
 class Inspector {
 
