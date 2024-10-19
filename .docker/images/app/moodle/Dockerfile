@@ -1,7 +1,5 @@
 # Use base php image.
-#FROM quick-dev:php
-# testing out 8.4
-FROM quick-dev:php-8.4
+FROM quick-dev:php
 
 RUN apt-get install -y nodejs npm
 

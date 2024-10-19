@@ -1,18 +1,22 @@
 require 'fileutils'
+require 'json'
 require 'optparse'
 require 'yaml'
+require "tty-prompt"
 require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
 
 class QuickDev
     
-    attr_accessor :project, :log
+    attr_accessor :project, :log, :prompt
 
     def initialize()
-        
+
+        @prompt = TTY::Prompt.new
+
         # Wipe the QuickDev log file.
-        @log = QUICK_DEV_PATH + '/logs/sys.log'
+        @log = QUICK_DEV_PATH + '/logs/quick-dev.log'
         if File.exist?(self.log)
             File.truncate(self.log, 0)
         end
@@ -30,9 +34,7 @@ class QuickDev
 
     # Run a command in Quick-Dev
     def run()
-    
-        # TODO: If we are not within a site, stop.
-    
+
         # The command is the first argument to the script.
         # Everything else is considered arguments to that command.
         command = ARGV[0]
@@ -41,6 +43,10 @@ class QuickDev
             
             when 'help'
                 self.run_help()
+            when 'config'
+                self.run_config()
+
+
             when 'create'
                 self.run_create()
             when 'setup'
@@ -101,94 +107,250 @@ class QuickDev
 
     end
 
-    def run_cmd()
-
-        command = ARGV[0]
-
-        # Project must be loaded.project_class
-        @project = Project.new()
-
-        project_class = self.get_class(self.project.type.capitalize)
-        all_class = self.get_class('All')
-        if project_class and project_class.respond_to?(command)
-            container = self.project.name + '-app'
-            project_class.send(command, container)
-        elsif all_class and all_class.respond_to?(command)
-            container = self.project.name + '-app'
-            all_class.send(command, container)
-        else
-            self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
-        end
-
+    # Check if we are currently within an apps project directory.
+    def is_in_app_dir()
+        return Dir.pwd.start_with?(QUICK_DEV_PATH + '/apps/')
     end
 
-    def run_cluster()
+    def run_config()
 
-        command = ARGV[1]
+        # Must be inside an app directory.
+        unless self.is_in_app_dir()
+           abort("Must be inside an app")
+        end
 
-        case command
+        # Load up what info we can from the dir.
+        @project = Project.create()
 
-            when 'setup'
-                self.run_cluster_setup()
-            when 'destroy'
-                self.run_cluster_destroy()
+        # Check if the config file already exists.
+        config_file = project.dir + '/cfg.yaml'
+        if File.exist?(config_file)
+            if self.prompt.select("Existing #{config_file} found. Do you wish to make a backup?", %w(yes no)) === 'yes'
+                FileUtils.mv(config_file, config_file + '.backup')
+            end
+        end
+
+        # Load the services JSON.
+        services = JSON.parse(File.read(QUICK_DEV_PATH + '/.quick-dev/services.json'))
+
+        # Start building the config Hash to create the yaml file.
+        data = {}
+
+        # What type of application are we running?
+        data[:app] = {}
+        data[:app][:type] = self.prompt.select("Application // What type of application will you be running?") do |menu|
+
+            services['apps'].each do |obj|
+                menu.choice obj['name'].capitalize, obj['name']
+            end
+
+        end
+
+        # Next, do we want to use a preset image or define our own?
+        which_image = self.prompt.select("Application // Which image do you want to use?") do |menu|
+
+            menu.choice :custom
+
+            i = 2
+            services['apps'].each do |obj|
+                if obj.key?('image')
+                    menu.choice 'quick-dev:' + obj['image'], 'quick-dev:' + obj['image']
+                    if obj['name'] == data[:app][:type]
+                        menu.default i
+                    end
+                    i += 1
+                end
+            end
+
+        end
+
+        # If they asked for a custom image, let them input it.
+        if which_image === 'custom'
+            data[:app][:image] = self.prompt.ask("Please input the docker image to pull for this application: ")
+        else
+            data[:app][:image] = which_image
+        end
+
+        # Are there any image args we need to gather?
+        data[:app][:args] = {}
+        services['apps'].each do |obj|
+            if obj['name'] == data[:app][:type] and obj.key?('args')
+                obj['args'].each do |arg|
+                    data[:app][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+                end
+            end
+        end
+
+        # Choose the other services required for the app.
+        other_services = self.prompt.multi_select("Which other services do you need?") do |menu|
+           menu.default 1,2
+           menu.choice :Database, 'db'
+           menu.choice :Caching, 'cache'
+        end
+
+        # If we need a DB, what engine and version do we want?
+        if other_services.include?('db')
+
+            data[:db] = {}
+
+            # Get the DB engine.
+            data[:db][:type] = self.prompt.select("Choose a database engine") do |menu|
+                services['db'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
+
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:db][:type]} version") do |menu|
+                services['db'].each do |obj|
+                    if obj['name'] === data[:db][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
+
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:db][:version] = self.prompt.ask("Which #{data[:db][:type]} version would you like? ")
             else
-                abort('Invalid command. Run `qd -h` for help.')
+                data[:db][:version] = which_version
+            end
 
         end
 
-    end
+        # If we want a caching service.
+        if other_services.include?('cache')
 
-    def run_cluster_setup()
+            data[:cache] = {}
 
-        self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
-        system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
-        system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
-        system("minikube start --driver=docker")
-        system("minikube kubectl -- create namespace #{self.project.name}")
+            # Get the cache engine.
+            data[:cache][:type] = self.prompt.select("Choose a caching system") do |menu|
+                services['cache'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
 
-    end
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:cache][:type]} version") do |menu|
+                services['cache'].each do |obj|
+                    if obj['name'] === data[:cache][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
 
-    def run_cluster_destroy()
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:cache][:version] = self.prompt.ask("Which #{data[:cache][:type]} version would you like? ")
+            else
+                data[:cache][:version] = which_version
+            end
 
-        self.say("Destroying cluster (#{self.project.name})")
-        system("minikube kubectl -- delete namespace #{self.project.name}")
-
-
-    end
-    
-    # Remove the project from quick-dev.
-    def run_remove()
-
-        @project = Project.new()
-
-        # Firstly stop and delete all the project containers.
-        self.say("Deleting all containers in (#{self.project.name})")
-        system("docker compose down")
-        
-        # Then remove the directory project.
-        self.say("Removing project directory (#{self.project.dir})")
-        FileUtils.remove_dir(self.project.dir)
-        
-        # TODO: Remove project logs (when done)
-        # TODO: Remove project backups (when done)
-    
-    end
-    
-    # Connect to the terminal of one of the project containers.
-    def run_connect()
-
-        @project = Project.new()
-
-        if !ARGV[1].nil?
-            container = ARGV[1]
-        else
-            container = self.project.name + '-app'
         end
-        
-        system("docker exec -it #{container} bash")
-        
+
+        # Save the config.
+        File.write(config_file, data.to_yaml)
+
+        self.say("Project configured (#{config_file}). Run `qd up` to bring up the containers.")
+
     end
+
+
+    #
+    # def run_cmd()
+    #
+    #     command = ARGV[0]
+    #
+    #     # Project must be loaded.project_class
+    #     @project = Project.new()
+    #
+    #     project_class = self.get_class(self.project.type.capitalize)
+    #     all_class = self.get_class('All')
+    #     if project_class and project_class.respond_to?(command)
+    #         container = self.project.name + '-app'
+    #         project_class.send(command, container)
+    #     elsif all_class and all_class.respond_to?(command)
+    #         container = self.project.name + '-app'
+    #         all_class.send(command, container)
+    #     else
+    #         self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
+    #     end
+    #
+    # end
+    #
+    # def run_cluster()
+    #
+    #     command = ARGV[1]
+    #
+    #     case command
+    #
+    #         when 'setup'
+    #             self.run_cluster_setup()
+    #         when 'destroy'
+    #             self.run_cluster_destroy()
+    #         else
+    #             abort('Invalid command. Run `qd -h` for help.')
+    #
+    #     end
+    #
+    # end
+    #
+    # def run_cluster_setup()
+    #
+    #     self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
+    #     system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
+    #     system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
+    #     system("minikube start --driver=docker")
+    #     system("minikube kubectl -- create namespace #{self.project.name}")
+    #
+    # end
+    #
+    # def run_cluster_destroy()
+    #
+    #     self.say("Destroying cluster (#{self.project.name})")
+    #     system("minikube kubectl -- delete namespace #{self.project.name}")
+    #
+    #
+    # end
+    #
+    # # Remove the project from quick-dev.
+    # def run_remove()
+    #
+    #     @project = Project.new()
+    #
+    #     # Firstly stop and delete all the project containers.
+    #     self.say("Deleting all containers in (#{self.project.name})")
+    #     system("docker compose down")
+    #
+    #     # Then remove the directory project.
+    #     self.say("Removing project directory (#{self.project.dir})")
+    #     FileUtils.remove_dir(self.project.dir)
+    #
+    #     # TODO: Remove project logs (when done)
+    #     # TODO: Remove project backups (when done)
+    #
+    # end
+    #
+    # # Connect to the terminal of one of the project containers.
+    # def run_connect()
+    #
+    #     @project = Project.new()
+    #
+    #     if !ARGV[1].nil?
+    #         container = ARGV[1]
+    #     else
+    #         container = self.project.name + '-app'
+    #     end
+    #
+    #     system("docker exec -it #{container} bash")
+    #
+    # end
     
     # Run the initial setup scripts.
     def run_setup()
@@ -198,15 +360,15 @@ class QuickDev
         system("docker network create quick-dev-network | tee -a #{self.log}")
 
         # Create any core local images we will build from.
-        self.say("Building local php-fpm image...")
-        system("docker build -t quick-dev:php ./.docker/images/php-fpm")
+        self.say("Building local images...")
+        system("docker build -t quick-dev:php ./.docker/images/app/php-fpm")
     
     end
     
     # Start the project containers.
     def run_up()
 
-        @project = Project.new()
+        @project = Project.load()
 
         # Define additional arguments which can be passed to the `up` command.
         options = {}
@@ -216,10 +378,15 @@ class QuickDev
             opts.on('-d', '--install-debug', 'Install debugging packages (Run first time you up the project)') { options[:debug] = 'debug' }
         end.parse!
         
-        # Make sure the docker-compose file has been created by the `add` command.
-        if !File.exist?(self.project.dir + '/docker-compose.yml')
-           abort("No docker-compose.yml file found in #{self.project.dir}. Please run `qd add` to build the project first.") 
+        # Build the docker-compose file if it's missing.
+        unless File.exist?(self.project.dir + '/docker-compose.yml')
+            project.build_docker_compose()
         end
+
+
+        abort("STOP")
+
+
         
         self.say("Setting up (#{self.project.name}) development environment...")
                 
@@ -261,70 +428,70 @@ class QuickDev
         self.say("====================")
     
     end
-    
-    # Stop the project containers.
-    def run_stop()
-
-        # Define additional arguments which can be passed to the `up` command.
-        options = {:all => false}
-        OptionParser.new do |opts|
-            opts.banner = "Usage: qd stop [options]"
-            opts.on('-a', '--all', 'Stop all the core quick-dev containers as well') { options[:all] = true }
-        end.parse!
-    
-        # Stop the core quick-dev containers.
-        if options[:all]
-            system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml stop")
-        end
-        
-        # Stop the project containers.
-        system("docker compose stop")
-        
-    end
-    
-    # Destroy the project containers.
-    def run_destroy()
-        
-        # Define additional arguments which can be passed to the `up` command.
-        options = {:all => false}
-        OptionParser.new do |opts|
-            opts.banner = "Usage: qd stop [options]"
-            opts.on('-a', '--all', 'Destroy all the core quick-dev containers as well') { options[:all] = true }
-        end.parse!
-    
-        # Stop the core quick-dev containers.
-        if options[:all]
-            system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml down")
-        end
-        
-        system("docker compose down")
-       
-    end
-    
-    # Add the site to Quick-Dev
-    def run_add()
-
-        @project = Project.new()
-
-        # Find all the global templates to be copied across.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
-            self.copy_template(file_name)
-        end
-
-        # Then any project type specific ones.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.template').each do |file_name|
-            self.copy_template(file_name)
-        end
-
-        # Run any git patches which are required.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.patch').each do |file_name|
-            self.apply_patch(file_name)
-        end
-        
-        self.say("Added #{self.project.name} (#{self.project.image}) to quick-dev")
-        self.say("Run `qd up` to start the project")
-    
-    end
+    #
+    # # Stop the project containers.
+    # def run_stop()
+    #
+    #     # Define additional arguments which can be passed to the `up` command.
+    #     options = {:all => false}
+    #     OptionParser.new do |opts|
+    #         opts.banner = "Usage: qd stop [options]"
+    #         opts.on('-a', '--all', 'Stop all the core quick-dev containers as well') { options[:all] = true }
+    #     end.parse!
+    #
+    #     # Stop the core quick-dev containers.
+    #     if options[:all]
+    #         system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml stop")
+    #     end
+    #
+    #     # Stop the project containers.
+    #     system("docker compose stop")
+    #
+    # end
+    #
+    # # Destroy the project containers.
+    # def run_destroy()
+    #
+    #     # Define additional arguments which can be passed to the `up` command.
+    #     options = {:all => false}
+    #     OptionParser.new do |opts|
+    #         opts.banner = "Usage: qd stop [options]"
+    #         opts.on('-a', '--all', 'Destroy all the core quick-dev containers as well') { options[:all] = true }
+    #     end.parse!
+    #
+    #     # Stop the core quick-dev containers.
+    #     if options[:all]
+    #         system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml down")
+    #     end
+    #
+    #     system("docker compose down")
+    #
+    # end
+    #
+    # # Add the site to Quick-Dev
+    # def run_add()
+    #
+    #     @project = Project.new()
+    #
+    #     # Find all the global templates to be copied across.
+    #     Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
+    #         self.copy_template(file_name)
+    #     end
+    #
+    #     # Then any project type specific ones.
+    #     Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.template').each do |file_name|
+    #         self.copy_template(file_name)
+    #     end
+    #
+    #     # Run any git patches which are required.
+    #     Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.patch').each do |file_name|
+    #         self.apply_patch(file_name)
+    #     end
+    #
+    #     self.say("Added #{self.project.name} (#{self.project.image}) to quick-dev")
+    #     self.say("Run `qd up` to start the project")
+    #
+    # end
 
     def apply_patch(patch_name)
         self.say("Applying git patch #{patch_name}")
