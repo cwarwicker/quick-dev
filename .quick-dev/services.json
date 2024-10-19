@@ -1,0 +1,49 @@
+{
+  "apps": [
+    {
+      "name": "laravel",
+      "lang": "php",
+      "image": "quick-dev:php:laravel",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+    },
+    {
+      "name": "moodle",
+      "lang": "php",
+      "image": "quick-dev:php:moodle",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+    },
+    {
+      "name": "php",
+      "lang": "php",
+      "image": "quick-dev:php:base",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+    },
+    {
+      "name": "other"
+    }
+  ],
+  "db": [
+    {
+      "name": "mariadb",
+      "image": "mariadb",
+      "versions": ["11.5.2", "11.4.3", "11.2.5"]
+    },
+    {
+      "name": "mysql",
+      "image": "mysql",
+      "versions": ["9.1.0", "8.4.3", "8.0.40"]
+    },
+    {
+      "name": "postgres",
+      "image": "postgres",
+      "versions": ["17.0", "16.4", "15.8", "14.13", "13.16", "12.20"]
+    }
+  ],
+  "cache": [
+    {
+      "name": "redis",
+      "image": "redis",
+      "versions": ["7.4.1"]
+    }
+  ]
+}

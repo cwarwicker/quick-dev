@@ -1,18 +1,22 @@
 require 'fileutils'
+require 'json'
 require 'optparse'
 require 'yaml'
+require "tty-prompt"
 require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
 
 class QuickDev
     
-    attr_accessor :project, :log
+    attr_accessor :project, :log, :prompt
 
     def initialize()
-        
+
+        @prompt = TTY::Prompt.new
+
         # Wipe the QuickDev log file.
-        @log = QUICK_DEV_PATH + '/logs/sys.log'
+        @log = QUICK_DEV_PATH + '/logs/quick-dev.log'
         if File.exist?(self.log)
             File.truncate(self.log, 0)
         end
@@ -30,9 +34,7 @@ class QuickDev
 
     # Run a command in Quick-Dev
     def run()
-    
-        # TODO: If we are not within a site, stop.
-    
+
         # The command is the first argument to the script.
         # Everything else is considered arguments to that command.
         command = ARGV[0]
@@ -41,12 +43,8 @@ class QuickDev
             
             when 'help'
                 self.run_help()
-            when 'create'
-                self.run_create()
-            when 'setup'
-                self.run_setup()
-            when 'add'
-                self.run_add()
+            when 'config'
+                self.run_config()
             when 'up'
                 self.run_up()
             when 'stop'
@@ -57,10 +55,10 @@ class QuickDev
                 self.run_connect()
             when 'remove'
                 self.run_remove()
-            when 'cluster'
-                self.run_cluster()
-            when 'services'
-                self.run_services()
+            # when 'cluster'
+            #     self.run_cluster()
+            # when 'services'
+            #     self.run_services()
             else
                 self.run_cmd()
 
@@ -72,9 +70,7 @@ class QuickDev
        
         puts <<-HELP
             Usage:          qd [command] [arguments]
-            setup           Runs the initial quick-dev setup scripts to be run on first install
-            add             Adds the current working dir as a site and copies core templates across
-                            [-a|--additional] Copies project-specific (eg. moodle) templates into codebase dir
+            config          Configures the project with the services you require
             up              Starts the project containers
                             [-r|--rebuild] Rebuild the images
             stop            Stops the project containers
@@ -85,8 +81,9 @@ class QuickDev
                             [name] Specific container to connect to
             remove          Completely remove the project from quick-dev
             <x..y>          Runs a project-specific command.
-                            [command] The command to run. E.g. `composer install`
-                        
+                            [command] The command to run. E.g. `qd artisan tinker` (laravel) or `qd purge` (moodle)
+            cmd             Run any arbritary command on the application console
+                            [command] The command to run. E.g. `qd echo 'Hello World'`                        
             
         HELP
             
@@ -101,12 +98,194 @@ class QuickDev
 
     end
 
+    # Check if we are currently within an apps project directory.
+    def is_in_app_dir()
+        return Dir.pwd.start_with?(QUICK_DEV_PATH + '/apps/')
+    end
+
+    def run_config()
+
+        # Must be inside an app directory.
+        unless self.is_in_app_dir()
+           abort("Must be inside an app")
+        end
+
+        # Load up what info we can from the dir.
+        @project = Project.create()
+
+        # Check if the config file already exists.
+        config_file = project.dir + '/cfg.yaml'
+        if File.exist?(config_file)
+            if self.prompt.select("Existing #{config_file} found. Do you wish to make a backup?", %w(yes no)) === 'yes'
+                FileUtils.mv(config_file, config_file + '.backup')
+            end
+        end
+
+        # Load the services JSON.
+        services = JSON.parse(File.read(QUICK_DEV_PATH + '/.quick-dev/services.json'))
+
+        # Start building the config Hash to create the yaml file.
+        data = {}
+
+        # What type of application are we running?
+        data[:app] = {}
+        data[:app][:type] = self.prompt.select("Application // What type of application will you be running?") do |menu|
+
+            services['apps'].each do |obj|
+                menu.choice obj['name'].capitalize, obj['name']
+            end
+
+        end
+
+        # Next, do we want to use a preset image or define our own?
+        which_image = self.prompt.select("Application // Which image do you want to use?") do |menu|
+
+            menu.choice :custom
+
+            i = 2
+            services['apps'].each do |obj|
+                if obj.key?('image')
+                    menu.choice obj['image'], obj['image']
+                    if obj['name'] == data[:app][:type]
+                        menu.default i
+                    end
+                    i += 1
+                end
+            end
+
+        end
+
+        # If they asked for a custom image, let them input it.
+        if which_image === 'custom'
+            data[:app][:image] = self.prompt.ask("Please input the docker image to pull for this application: ")
+        else
+            data[:app][:image] = which_image
+        end
+
+        # Are there any image args we need to gather?
+        data[:app][:args] = {}
+        services['apps'].each do |obj|
+            if obj['name'] == data[:app][:type] and obj.key?('args')
+                obj['args'].each do |arg|
+                    data[:app][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+                end
+            end
+        end
+
+        # Add any additional required services linked to this type. E.g. Caddy for most web-based app types.
+        services['apps'].each do |obj|
+            if obj['name'] == data[:app][:type] and obj.key?('requires')
+                data[:app][:requires] = []
+                obj['requires'].each do |requires|
+                    data[:app][:requires].push(requires)
+                end
+            end
+        end
+
+        # Choose the other services required for the app.
+        other_services = self.prompt.multi_select("Which other services do you need?") do |menu|
+           menu.default 1,2
+           menu.choice :Database, 'db'
+           menu.choice :Caching, 'cache'
+        end
+
+        # If we need a DB, what engine and version do we want?
+        if other_services.include?('db')
+
+            data[:db] = {}
+
+            # Get the DB engine.
+            data[:db][:type] = self.prompt.select("Choose a database engine") do |menu|
+                services['db'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
+
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:db][:type]} version") do |menu|
+                services['db'].each do |obj|
+                    if obj['name'] === data[:db][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
+
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:db][:version] = self.prompt.ask("Which #{data[:db][:type]} version would you like? ")
+            else
+                data[:db][:version] = which_version
+            end
+
+        end
+
+        # If we want a caching service.
+        if other_services.include?('cache')
+
+            data[:cache] = {}
+
+            # Get the cache engine.
+            data[:cache][:type] = self.prompt.select("Choose a caching system") do |menu|
+                services['cache'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
+
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:cache][:type]} version") do |menu|
+                services['cache'].each do |obj|
+                    if obj['name'] === data[:cache][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
+
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:cache][:version] = self.prompt.ask("Which #{data[:cache][:type]} version would you like? ")
+            else
+                data[:cache][:version] = which_version
+            end
+
+        end
+
+        # Save the config.
+        File.write(config_file, data.to_yaml)
+
+        # Reload the project.
+        @project = Project.load()
+
+        # Find all the global templates to be copied across.
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
+            self.copy_template(file_name)
+        end
+
+        # Then any project type specific ones.
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/*.template').each do |file_name|
+            self.copy_template(file_name)
+        end
+
+        # Run any git patches which are required.
+        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/*.patch').each do |file_name|
+            self.apply_patch(file_name)
+        end
+
+        self.say("Project configured (#{config_file}). Run `qd up` to bring up the containers.")
+
+    end
+
     def run_cmd()
 
         command = ARGV[0]
 
         # Project must be loaded.project_class
-        @project = Project.new()
+        @project = Project.load()
 
         project_class = self.get_class(self.project.type.capitalize)
         all_class = self.get_class('All')
@@ -121,92 +300,88 @@ class QuickDev
         end
 
     end
-
-    def run_cluster()
-
-        command = ARGV[1]
-
-        case command
-
-            when 'setup'
-                self.run_cluster_setup()
-            when 'destroy'
-                self.run_cluster_destroy()
-            else
-                abort('Invalid command. Run `qd -h` for help.')
-
-        end
-
-    end
-
-    def run_cluster_setup()
-
-        self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
-        system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
-        system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
-        system("minikube start --driver=docker")
-        system("minikube kubectl -- create namespace #{self.project.name}")
-
-    end
-
-    def run_cluster_destroy()
-
-        self.say("Destroying cluster (#{self.project.name})")
-        system("minikube kubectl -- delete namespace #{self.project.name}")
-
-
-    end
-    
+    #
+    # def run_cluster()
+    #
+    #     command = ARGV[1]
+    #
+    #     case command
+    #
+    #         when 'setup'
+    #             self.run_cluster_setup()
+    #         when 'destroy'
+    #             self.run_cluster_destroy()
+    #         else
+    #             abort('Invalid command. Run `qd -h` for help.')
+    #
+    #     end
+    #
+    # end
+    #
+    # def run_cluster_setup()
+    #
+    #     self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
+    #     system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
+    #     system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
+    #     system("minikube start --driver=docker")
+    #     system("minikube kubectl -- create namespace #{self.project.name}")
+    #
+    # end
+    #
+    # def run_cluster_destroy()
+    #
+    #     self.say("Destroying cluster (#{self.project.name})")
+    #     system("minikube kubectl -- delete namespace #{self.project.name}")
+    #
+    #
+    # end
+    #
     # Remove the project from quick-dev.
     def run_remove()
 
-        @project = Project.new()
+        @project = Project.load()
 
         # Firstly stop and delete all the project containers.
         self.say("Deleting all containers in (#{self.project.name})")
         system("docker compose down")
-        
+
+        # Then remove any reference to this in the .docker/caddy/ directory.
+        files = ['/.docker/caddy/' + self.project.name + '.caddy']
+        files.each do |f|
+            if File.exist?(QUICK_DEV_PATH + f)
+                File.delete(QUICK_DEV_PATH + f)
+                self.say("Removing [#{f}]")
+            end
+        end
+
         # Then remove the directory project.
         self.say("Removing project directory (#{self.project.dir})")
         FileUtils.remove_dir(self.project.dir)
-        
+
         # TODO: Remove project logs (when done)
         # TODO: Remove project backups (when done)
-    
+
     end
-    
+
     # Connect to the terminal of one of the project containers.
     def run_connect()
 
-        @project = Project.new()
+        @project = Project.load()
 
         if !ARGV[1].nil?
             container = ARGV[1]
         else
             container = self.project.name + '-app'
         end
-        
+
         system("docker exec -it #{container} bash")
-        
-    end
-    
-    # Run the initial setup scripts.
-    def run_setup()
 
-        # Create the quick-dev network.
-        self.say("Creating quick-dev-network...")
-        system("docker network create quick-dev-network | tee -a #{self.log}")
-
-        # Create any core local images we will build from.
-        self.say("Building local php-fpm image...")
-        system("docker build -t quick-dev:php ./.docker/images/php-fpm")
-    
     end
     
     # Start the project containers.
     def run_up()
 
-        @project = Project.new()
+        @project = Project.load()
 
         # Define additional arguments which can be passed to the `up` command.
         options = {}
@@ -216,13 +391,11 @@ class QuickDev
             opts.on('-d', '--install-debug', 'Install debugging packages (Run first time you up the project)') { options[:debug] = 'debug' }
         end.parse!
         
-        # Make sure the docker-compose file has been created by the `add` command.
-        if !File.exist?(self.project.dir + '/docker-compose.yml')
-           abort("No docker-compose.yml file found in #{self.project.dir}. Please run `qd add` to build the project first.") 
+        # Build the docker-compose file if it's missing.
+        unless File.exist?(self.project.dir + '/docker-compose.yml')
+            project.build_docker_compose()
         end
-        
-        self.say("Setting up (#{self.project.name}) development environment...")
-                
+
         # Create core network if it doesn't exist.
         system("docker network inspect #{QUICK_DEV_NETWORK} >/dev/null 2>&1 || (echo 'Creating quick-dev network:' && docker network create #{QUICK_DEV_NETWORK})")
 
@@ -253,15 +426,17 @@ class QuickDev
 
         self.say("====================")
         self.say("Site will be rendered at: #{self.project.url}")
-        self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
+        if options[:debug]
+            self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
+        end
         self.say("====================")
         self.say("Services:")
-        self.say("🗄️   Adminer: http://adminer.#{self.project.hostname}.localhost:8080?server=#{self.project.name}-db&username=user&db=main")
-        self.say("🐞   Buggregator: http://buggregator.#{self.project.hostname}.localhost:8000")
+        self.say("🗄️   Adminer: http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main")
+        self.say("🐞   Buggregator: http://buggregator.localhost:8000")
         self.say("====================")
     
     end
-    
+
     # Stop the project containers.
     def run_stop()
 
@@ -271,59 +446,34 @@ class QuickDev
             opts.banner = "Usage: qd stop [options]"
             opts.on('-a', '--all', 'Stop all the core quick-dev containers as well') { options[:all] = true }
         end.parse!
-    
+
         # Stop the core quick-dev containers.
         if options[:all]
             system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml stop")
         end
-        
+
         # Stop the project containers.
         system("docker compose stop")
-        
+
     end
-    
+
     # Destroy the project containers.
     def run_destroy()
-        
+
         # Define additional arguments which can be passed to the `up` command.
         options = {:all => false}
         OptionParser.new do |opts|
             opts.banner = "Usage: qd stop [options]"
             opts.on('-a', '--all', 'Destroy all the core quick-dev containers as well') { options[:all] = true }
         end.parse!
-    
+
         # Stop the core quick-dev containers.
         if options[:all]
             system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml down")
         end
-        
+
         system("docker compose down")
-       
-    end
-    
-    # Add the site to Quick-Dev
-    def run_add()
 
-        @project = Project.new()
-
-        # Find all the global templates to be copied across.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
-            self.copy_template(file_name)
-        end
-
-        # Then any project type specific ones.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.template').each do |file_name|
-            self.copy_template(file_name)
-        end
-
-        # Run any git patches which are required.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + self.project.type + '/*.patch').each do |file_name|
-            self.apply_patch(file_name)
-        end
-        
-        self.say("Added #{self.project.name} (#{self.project.image}) to quick-dev")
-        self.say("Run `qd up` to start the project")
-    
     end
 
     def apply_patch(patch_name)
@@ -339,22 +489,11 @@ class QuickDev
         replace_map = {
             '%project.name%' => self.project.name,
             '%project.image%' => self.project.image,
-            '%project.port%' => self.project.port,
-            '%project.path%' => self.project.path,
             '%project.url%' => self.project.url,
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
             '%root%' => QUICK_DEV_PATH,
-            '%context%' => '',
         }
-
-        # Work out if we need the build context or not in the docker-compose file.
-        image_path = QUICK_DEV_PATH + '/.docker/images/' + self.project.image
-        if File.directory?(image_path)
-           replace_map['%context%'] = "
-        build:
-            context: #{image_path}"
-        end
 
         # If we didn't specify a directory, use the root.
         if project_path.nil?
@@ -371,20 +510,29 @@ class QuickDev
         
         # Remove the ".template" extension and prepend any other directory.
         new_file_name = project_path + File.basename(file_name.gsub(".template", ""))
-        
-        # Copy the file into the site directory.
-        FileUtils.cp(file_name, new_file_name)
-        
-        # This makes the replacements in the file. Not entirely sure how it works.
-        File.write(new_file_name, File.open(new_file_name, &:read).gsub(re, replace_map))
 
-        self.say("#{file_name} ==> #{new_file_name}")
-
-        # If it's the Caddy template, move it into the .docker/caddy directory as well, to be loaded into caddy container.
         if File.basename(file_name) == 'caddy.template'
+
             caddy_path = QUICK_DEV_PATH + '/.docker/caddy/' + self.project.name + '.caddy'
-            FileUtils.cp(new_file_name, caddy_path)
+
+            # Copy the file into the caddy directory.
+            FileUtils.cp(file_name, caddy_path)
+
+            # This makes the replacements in the file. Not entirely sure how it works.
+            File.write(caddy_path, File.open(caddy_path, &:read).gsub(re, replace_map))
+
             self.say("#{file_name} ==> #{caddy_path}")
+
+        else
+
+            # Copy the file into the site directory.
+            FileUtils.cp(file_name, new_file_name)
+
+            # This makes the replacements in the file. Not entirely sure how it works.
+            File.write(new_file_name, File.open(new_file_name, &:read).gsub(re, replace_map))
+
+            self.say("#{file_name} ==> #{new_file_name}")
+
         end
 
     end

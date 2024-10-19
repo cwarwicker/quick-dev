@@ -19,7 +19,7 @@ services:
         networks:
             - quick-dev-network
     caddy:
-        container_name: caddy
+        container_name: quick-dev-caddy
         image: caddy:latest
         restart: always
         ports:

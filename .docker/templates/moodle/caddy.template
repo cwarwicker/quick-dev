@@ -5,7 +5,7 @@
     tls internal
 
     php_fastcgi %project.name%-app:9000 {
-        root /var/www/site
+        root /app
     }
 
     log {
