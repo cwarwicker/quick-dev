@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'optparse'
+require 'yaml'
 require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
@@ -35,13 +36,7 @@ class QuickDev
         # The command is the first argument to the script.
         # Everything else is considered arguments to that command.
         command = ARGV[0]
-        
-        # Load the project from the env file. Will abort if any problems.
-        # Skip this if we are doing a command which doesn't need to be in a site dir though.
-        if command && !['create', 'help', 'setup'].include?(command)
-            @project = Project.new()
-        end
-        
+
         case command
             
             when 'help'
@@ -64,10 +59,10 @@ class QuickDev
                 self.run_remove()
             when 'cluster'
                 self.run_cluster()
-            when 'cmd'
-                self.run_cmd()
+            when 'services'
+                self.run_services()
             else
-                abort('Invalid command. Run `qd -h` for help.')
+                self.run_cmd()
 
         end
     
@@ -89,8 +84,8 @@ class QuickDev
             connect         Opens terminal connection to a project container (default: web)
                             [name] Specific container to connect to
             remove          Completely remove the project from quick-dev
-            cmd             Runs a project-specific command.
-                            [command] The command to run. E.g. for a Moodle project "install".
+            <x..y>          Runs a project-specific command.
+                            [command] The command to run. E.g. `composer install`
                         
             
         HELP
@@ -108,12 +103,19 @@ class QuickDev
 
     def run_cmd()
 
-        command = ARGV[1]
+        command = ARGV[0]
+
+        # Project must be loaded.project_class
+        @project = Project.new()
 
         project_class = self.get_class(self.project.type.capitalize)
+        all_class = self.get_class('All')
         if project_class and project_class.respond_to?(command)
             container = self.project.name + '-app'
             project_class.send(command, container)
+        elsif all_class and all_class.respond_to?(command)
+            container = self.project.name + '-app'
+            all_class.send(command, container)
         else
             self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
         end
@@ -145,7 +147,6 @@ class QuickDev
         system("minikube start --driver=docker")
         system("minikube kubectl -- create namespace #{self.project.name}")
 
-
     end
 
     def run_cluster_destroy()
@@ -158,7 +159,9 @@ class QuickDev
     
     # Remove the project from quick-dev.
     def run_remove()
-       
+
+        @project = Project.new()
+
         # Firstly stop and delete all the project containers.
         self.say("Deleting all containers in (#{self.project.name})")
         system("docker compose down")
@@ -174,7 +177,9 @@ class QuickDev
     
     # Connect to the terminal of one of the project containers.
     def run_connect()
-        
+
+        @project = Project.new()
+
         if !ARGV[1].nil?
             container = ARGV[1]
         else
@@ -187,7 +192,7 @@ class QuickDev
     
     # Run the initial setup scripts.
     def run_setup()
-       
+
         # Create the quick-dev network.
         self.say("Creating quick-dev-network...")
         system("docker network create quick-dev-network | tee -a #{self.log}")
@@ -200,6 +205,8 @@ class QuickDev
     
     # Start the project containers.
     def run_up()
+
+        @project = Project.new()
 
         # Define additional arguments which can be passed to the `up` command.
         options = {}
@@ -257,7 +264,7 @@ class QuickDev
     
     # Stop the project containers.
     def run_stop()
-        
+
         # Define additional arguments which can be passed to the `up` command.
         options = {:all => false}
         OptionParser.new do |opts|
@@ -296,6 +303,8 @@ class QuickDev
     
     # Add the site to Quick-Dev
     def run_add()
+
+        @project = Project.new()
 
         # Find all the global templates to be copied across.
         Dir.glob(QUICK_DEV_PATH + '/.docker/templates/*.template').each do |file_name|
