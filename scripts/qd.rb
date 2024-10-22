@@ -3,6 +3,7 @@ require 'json'
 require 'optparse'
 require 'yaml'
 require "tty-prompt"
+require "tty-markdown"
 require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
@@ -57,8 +58,8 @@ class QuickDev
                 self.run_remove()
             # when 'cluster'
             #     self.run_cluster()
-            # when 'services'
-            #     self.run_services()
+            when 'services'
+                self.run_services()
             else
                 self.run_cmd()
 
@@ -70,6 +71,7 @@ class QuickDev
        
         puts <<-HELP
             Usage:          qd [command] [arguments]
+
             config          Configures the project with the services you require
             up              Starts the project containers
                             [-r|--rebuild] Rebuild the images
@@ -80,6 +82,8 @@ class QuickDev
             connect         Opens terminal connection to a project container (default: web)
                             [name] Specific container to connect to
             remove          Completely remove the project from quick-dev
+            services        Lists all running services in the project and their endpoints
+                            [-a|--all] Includes the core quick-dev services
             <x>             Runs a project-specific command.
                             [command] The command to run. E.g. `artisan tinker` (laravel) or `purge` (moodle)
             cmd             Run any arbitrary command on the application console
@@ -299,6 +303,57 @@ class QuickDev
         end
 
     end
+
+    def get_service_status(container)
+        return `docker inspect -f '{{.State.Status}}' #{container}`
+    end
+
+    def run_services(all = false)
+
+        @project = Project.load()
+
+        # Define additional arguments which can be passed to the `up` command.
+        options = {}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd services [options]"
+            opts.on('-a', '--all', 'Stop all the core quick-dev containers as well') { options[:all] = true }
+        end.parse!
+
+        # Load the docker-compose file (we use this instead of cfg.yml incase of custom changes).
+        space = "\t\t"
+        content = "# #{self.project.name} - SERVICES\n"
+        content = content + "NAME#{space}\tTYPE#{space}STATUS#{space}URL\n"
+
+        # Loop through the project services.
+        self.project.config.each do |name, service|
+
+            url = ''
+            status = self.get_service_status(self.project.name + '-' + "#{name}").strip
+
+            # Not sure at the moment how else to know which ones will have URLs.
+            if "#{name}" == 'app'
+                url = "https://#{self.project.name}.localhost"
+            end
+
+            content = content + "#{self.project.name}-#{name}#{space}#{service[:type]}#{space}#{status}#{space}#{url}\n"
+
+        end
+
+        if all or options[:all]
+            content = content + "\n"
+            content = content + "# Core - SERVICES\n"
+            content = content + "NAME\t\t\t\tSTATUS\t\tURL\n"
+
+            # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
+            content = content + "quick-dev-adminer\t\t#{self.get_service_status('quick-dev-adminer').strip}\t\thttp://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
+            content = content + "quick-dev-debug\t\t\t#{self.get_service_status('quick-dev-debug').strip}\t\thttp://buggregator.localhost:8000\n"
+            content = content + "quick-dev-caddy\t\t\t#{self.get_service_status('quick-dev-caddy').strip}\t\t-\n"
+        end
+
+        self.say(TTY::Markdown.parse(content))
+
+    end
+
     #
     # def run_cluster()
     #
@@ -385,7 +440,7 @@ class QuickDev
         # Define additional arguments which can be passed to the `up` command.
         options = {}
         OptionParser.new do |opts|
-            opts.banner = "Usage: qd add [options]"
+            opts.banner = "Usage: qd up [options]"
             opts.on('-r', '--rebuild', 'Rebuild the docker image(s)') { options[:rebuild] = 'rebuild' }
             opts.on('-d', '--install-debug', 'Install debugging packages (Run first time you up the project)') { options[:debug] = 'debug' }
         end.parse!
@@ -424,16 +479,11 @@ class QuickDev
 
         end
 
-        self.say("====================")
-        self.say("Site will be rendered at: #{self.project.url}")
         if options[:debug]
             self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
         end
-        self.say("====================")
-        self.say("Services:")
-        self.say("🗄️   Adminer: http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main")
-        self.say("🐞   Buggregator: http://buggregator.localhost:8000")
-        self.say("====================")
+        self.say("\n")
+        self.run_services(true)
     
     end
 
@@ -463,7 +513,7 @@ class QuickDev
         # Define additional arguments which can be passed to the `up` command.
         options = {:all => false}
         OptionParser.new do |opts|
-            opts.banner = "Usage: qd stop [options]"
+            opts.banner = "Usage: qd destroy [options]"
             opts.on('-a', '--all', 'Destroy all the core quick-dev containers as well') { options[:all] = true }
         end.parse!
 
