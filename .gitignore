@@ -1,5 +1,5 @@
 # Ignore these.
-sites/*
+apps/*
 logs/*
 .k8s/*
 .idea/

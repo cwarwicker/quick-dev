@@ -80,10 +80,10 @@ class QuickDev
             connect         Opens terminal connection to a project container (default: web)
                             [name] Specific container to connect to
             remove          Completely remove the project from quick-dev
-            <x..y>          Runs a project-specific command.
-                            [command] The command to run. E.g. `qd artisan tinker` (laravel) or `qd purge` (moodle)
-            cmd             Run any arbritary command on the application console
-                            [command] The command to run. E.g. `qd echo 'Hello World'`                        
+            <x>             Runs a project-specific command.
+                            [command] The command to run. E.g. `artisan tinker` (laravel) or `purge` (moodle)
+            cmd             Run any arbitrary command on the application console
+                            [command] The command to run. E.g. `echo 'Hello World'`                        
             
         HELP
             
@@ -122,7 +122,7 @@ class QuickDev
         end
 
         # Load the services JSON.
-        services = JSON.parse(File.read(QUICK_DEV_PATH + '/.quick-dev/services.json'))
+        services = JSON.parse(File.read(QUICK_DEV_PATH + '/services.json'))
 
         # Start building the config Hash to create the yaml file.
         data = {}
@@ -160,14 +160,13 @@ class QuickDev
             data[:app][:image] = self.prompt.ask("Please input the docker image to pull for this application: ")
         else
             data[:app][:image] = which_image
-        end
-
-        # Are there any image args we need to gather?
-        data[:app][:args] = {}
-        services['apps'].each do |obj|
-            if obj['name'] == data[:app][:type] and obj.key?('args')
-                obj['args'].each do |arg|
-                    data[:app][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+            # Are there any image args we need to gather?
+            data[:app][:args] = {}
+            services['apps'].each do |obj|
+                if obj['name'] == data[:app][:type] and obj.key?('args')
+                    obj['args'].each do |arg|
+                        data[:app][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+                    end
                 end
             end
         end
@@ -404,6 +403,7 @@ class QuickDev
         
         # Rebuild the project images if requested.
         if options[:rebuild]
+            system("docker compose pull")
             system("docker compose build --no-cache")
         end
         

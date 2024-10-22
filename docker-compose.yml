@@ -26,7 +26,7 @@ services:
             - "80:80"
             - "443:443"
         volumes:
-            - ./sites/:/srv/www
+            - ./apps/:/srv/www
             - ./.docker/images/caddy/Caddyfile:/etc/caddy/Caddyfile
             - ./.docker/caddy:/etc/caddy/sites
         networks:

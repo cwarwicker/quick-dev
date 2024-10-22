@@ -112,7 +112,21 @@ class Project
         end
 
         # Caching.
-        # TODO
+        if self.config[:cache]
+
+          data['services']['cache'] = {
+            'container_name': self.name + '-cache',
+            'image': self.config[:cache][:type] + ':' + self.config[:cache][:version],
+            'networks': [
+              'quick-dev-network'
+            ]
+          }
+
+          # Read service-specific config to load in.
+          service_config = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services/' + self.config[:cache][:type] + '.service'), {symbolize_names: true})
+          data['services']['cache'] = data['services']['cache'].merge(service_config)
+
+        end
 
         data['networks'] = {
           'quick-dev-network': {
