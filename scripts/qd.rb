@@ -8,10 +8,14 @@ require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
 
+# Main quick-dev class
 class QuickDev
-    
+
+    # Attributes which can be accessed from this object.
     attr_accessor :project, :log, :prompt
 
+    # Initialise an instance of the object
+    # @return [QuickDev]
     def initialize()
 
         @prompt = TTY::Prompt.new
@@ -33,7 +37,7 @@ class QuickDev
     
     end
 
-    # Run a command in Quick-Dev
+    # Run one of the built-in commands
     def run()
 
         # The command is the first argument to the script.
@@ -41,7 +45,9 @@ class QuickDev
         command = ARGV[0]
 
         case command
-            
+
+            when 'version'
+                self.run_version()
             when 'help'
                 self.run_help()
             when 'config'
@@ -67,11 +73,21 @@ class QuickDev
     
     end
 
+    # Check the version of Quick-Dev you are running.
+    def run_version
+        self.say("Quick-Dev #{QUICK_DEV_VERSION}")
+        self.say("Made by Conn Warwicker")
+        self.say("For any issues or feature requests, see: https://github.com/cwarwicker/quick-dev)")
+    end
+
+    # Display the help information
     def run_help()
        
         puts <<-HELP
             Usage:          qd [command] [arguments]
 
+            help            Displays this help information
+            version         Displays the version of Quick-Dev you are running
             config          Configures the project with the services you require
             up              Starts the project containers
                             [-r|--rebuild] Rebuild the images
@@ -93,6 +109,9 @@ class QuickDev
             
     end
 
+    # Get an instance of a class, given its name
+    # @param [String] class_name
+    # @return [Object|false]
     def get_class(class_name)
 
        # If the class exists return a new instance of it. Else return false.
@@ -103,10 +122,12 @@ class QuickDev
     end
 
     # Check if we are currently within an apps project directory.
+    # @return [Boolean]
     def is_in_app_dir()
         return Dir.pwd.start_with?(QUICK_DEV_PATH + '/apps/')
     end
 
+    # Run the config command on your project.
     def run_config()
 
         # Must be inside an app directory.
@@ -126,7 +147,7 @@ class QuickDev
         end
 
         # Load the services JSON.
-        services = JSON.parse(File.read(QUICK_DEV_PATH + '/services.json'))
+        services = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services.json'))
 
         # Start building the config Hash to create the yaml file.
         data = {}
@@ -283,6 +304,7 @@ class QuickDev
 
     end
 
+    # Run any command you want on the container, assuming it exists.
     def run_cmd()
 
         command = ARGV[0]
@@ -304,10 +326,15 @@ class QuickDev
 
     end
 
+    # Get the status (running/stopped) of a docker container
+    # @param [String] container
+    # @return [String]
     def get_service_status(container)
         return `docker inspect -f '{{.State.Status}}' #{container}`
     end
 
+    # Run the services command to view services and their status/info
+    # @param [Boolean] all (Default: False) - Show core services as well
     def run_services(all = false)
 
         @project = Project.load()
@@ -389,7 +416,7 @@ class QuickDev
     #
     #
     # end
-    #
+
     # Remove the project from quick-dev.
     def run_remove()
 
@@ -417,7 +444,7 @@ class QuickDev
 
     end
 
-    # Connect to the terminal of one of the project containers.
+    # Connect to the terminal of one of the project containers (main app container by default)
     def run_connect()
 
         @project = Project.load()
@@ -526,6 +553,8 @@ class QuickDev
 
     end
 
+    # Apply a git patch file
+    # @param [String] patch_name
     def apply_patch(patch_name)
         self.say("Applying git patch #{patch_name}")
         system("git apply #{patch_name}")
@@ -533,6 +562,7 @@ class QuickDev
 
     # Copy template files into the project directory
     # @param [String] file_name The template file to copy
+    # @param [String|nil] project_path If specified, it will be copied to this path.
     def copy_template(file_name, project_path = nil)
         
         # Replace placeholders with project values in the copied files.
