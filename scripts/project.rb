@@ -2,7 +2,6 @@ require 'dotenv'
 require 'pathname'
 require 'socket'
 require 'yaml'
-require 'active_support/core_ext/hash/keys'
 require_relative 'const.rb'
 
 class Project
