@@ -79,6 +79,8 @@ Run the config command within your project.
 qd config
 ```
 
+(Note: There are some preset configurations which you can choose from instead of rolling your own. To select one of these add the `-p` or `--preset` flag. E.g. `qd config --preset`)
+
 This will bring up a series of menus to choose the project type, image, etc... as well as any other services required, such as database, caching, etc...
 
 ### Project Type

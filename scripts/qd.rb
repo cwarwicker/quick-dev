@@ -93,6 +93,7 @@ class QuickDev
             help            Displays this help information
             version         Displays the version of Quick-Dev you are running
             config          Configures the project with the services you require
+                            [-p|--preset] Choose from a preset configuration
             up              Starts the project containers
                             [-r|--rebuild] Rebuild the images
             stop            Stops the project containers
