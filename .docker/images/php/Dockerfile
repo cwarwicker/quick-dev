@@ -45,7 +45,7 @@ RUN mkdir -p $NVM_DIR && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix $NODE_VERSION"
 
 # Create sitedata directory.
-RUN mkdir -p /var/www/data && chmod 0755 /var/www/data
+RUN mkdir -p /var/www/data && chmod 0777 /var/www/data
 
 # Add the .ini files with the directives we need.
 ADD ./moodle/php.ini /usr/local/etc/php/conf.d/custom.ini
