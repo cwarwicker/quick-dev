@@ -1,0 +1,30 @@
+{
+  "moodle": {
+    "4.0+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {"PHP_VERSION": 8.3}
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    }
+  },
+  "laravel": {
+    "11": {
+      "app": {
+        "image": "quick-dev:php:laravel",
+        "args": {"PHP_VERSION": 8.3}
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    }
+  }
+}

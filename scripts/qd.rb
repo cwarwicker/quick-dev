@@ -216,24 +216,86 @@ class QuickDev
 
     end
 
+    def run_config_preset()
+
+        # Load the presets.
+        presets = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/presets.json'))
+        choice = self.prompt.select("Which preset do you want to use?") do |menu|
+
+            presets.each do |key, item|
+                item.each do |v, obj|
+                    obj['type'] = key
+                    menu.choice key + ' // ' + v, obj
+                end
+            end
+
+        end
+
+        # Build the cfg.yaml from the preset.
+        data = {}
+        data[:app] = {
+          'type': choice['type'],
+          'image': choice['app']['image'],
+          'args': {}
+        }
+
+        if choice['app']['args']
+            choice['app']['args'].each do |arg, value|
+                data[:app][:args][arg] = value
+            end
+        end
+
+        if choice['db']
+            split = choice['db']['image'].split(':')
+            data[:db] = {
+              'type': split[0],
+              'version': split[1]
+            }
+        end
+
+        if choice['cache']
+            split = choice['cache']['image'].split(':')
+            data[:cache] = {
+              'type': split[0],
+              'version': split[1]
+            }
+        end
+
+        config_file = project.dir + '/cfg.yaml'
+        self.save_config(data, config_file)
+
+    end
+
     # Run the config command on your project.
     def run_config()
 
         # Load up what info we can from the dir.
         @project = Project.create()
 
+        options = {'preset': false}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd config [options]"
+            opts.on('-p', '--preset', 'Select a preset configuration instead of rolling your own')
+        end.parse!(into: options)
+
         # Check if the config file already exists.
         config_file = project.dir + '/cfg.yaml'
+        docker_file = project.dir + '/docker-compose.yml'
         if File.exist?(config_file)
             if self.prompt.select("Existing config file(s) found. Do you wish to make a backup?", %w(yes no)) === 'yes'
                 FileUtils.cp(config_file, config_file + '.backup')
-                FileUtils.cp(project.dir + '/docker-compose.yml', project.dir + '/docker-compose.yml' + '.backup')
+                FileUtils.cp(docker_file, docker_file + '.backup')
             end
         end
 
         # Delete the config files.
-        File.delete(config_file)
-        File.delete(project.dir + '/docker-compose.yml')
+        File.delete(config_file) if File.exist?(config_file)
+        File.delete(docker_file) if File.exist?(docker_file)
+
+        # If we want a preset, call that method instead.
+        if options[:preset]
+            return self.run_config_preset()
+        end
 
         # Load the services JSON.
         services = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services.json'))
@@ -367,6 +429,13 @@ class QuickDev
             end
 
         end
+
+        self.save_config(data, config_file)
+
+    end
+
+    # Save the Hash of config data to the project config file
+    def save_config(data, config_file)
 
         # Save the config.
         File.write(config_file, data.to_yaml)
