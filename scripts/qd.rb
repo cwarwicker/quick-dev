@@ -2,8 +2,8 @@ require 'fileutils'
 require 'json'
 require 'optparse'
 require 'yaml'
-require "tty-prompt"
-require "tty-markdown"
+require 'tty-markdown'
+require 'tty-prompt'
 require_relative 'project.rb'
 require_relative 'const.rb'
 Dir["#{File.dirname(__FILE__)}/commands/*.rb"].each {|file| require file }
@@ -506,9 +506,9 @@ class QuickDev
         end.parse!
 
         # Load the docker-compose file (we use this instead of cfg.yml incase of custom changes).
-        space = "\t\t"
-        content = "# #{self.project.name} - SERVICES\n"
-        content = content + "NAME#{space}\tTYPE#{space}STATUS#{space}URL\n"
+        delim = "{@}"
+        content = "PROJECT SERVICES (#{self.project.name})\n\n"
+        content = content + "NAME#{delim}TYPE#{delim}STATUS#{delim}URL\n"
 
         # Loop through the project services.
         self.project.config.each do |name, service|
@@ -521,22 +521,22 @@ class QuickDev
                 url = "https://#{self.project.name}.localhost"
             end
 
-            content = content + "#{self.project.name}-#{name}#{space}#{service[:type]}#{space}#{status}#{space}#{url}\n"
+            content = content + "#{self.project.name}-#{name}#{delim}#{service[:type]}#{delim}#{status}#{delim}#{url}\n"
 
         end
 
         if all or options[:all]
-            content = content + "\n"
-            content = content + "# Core - SERVICES\n"
-            content = content + "NAME\t\t\t\tSTATUS\t\tURL\n"
+            content = content + "\n----------\n"
+            content = content + "CORE SERVICES\n\n"
+            content = content + "NAME#{delim}STATUS#{delim}URL\n"
 
             # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
-            content = content + "quick-dev-adminer\t\t#{self.get_service_status('quick-dev-adminer').strip}\t\thttp://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
-            content = content + "quick-dev-debug\t\t\t#{self.get_service_status('quick-dev-debug').strip}\t\thttp://buggregator.localhost:8000\n"
-            content = content + "quick-dev-caddy\t\t\t#{self.get_service_status('quick-dev-caddy').strip}\t\t-\n"
+            content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
+            content = content + "quick-dev-debug#{delim}#{self.get_service_status('quick-dev-debug').strip}#{delim}http://buggregator.localhost:8000\n"
+            content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
         end
 
-        self.say(TTY::Markdown.parse(content))
+        system("echo '#{content}' | column -t -s'#{delim}'")
 
     end
 
@@ -665,11 +665,13 @@ class QuickDev
 
         end
 
-        if options[:debug]
-            self.say("ACTION REQUIRED - Please add the following to your config/index page: `require_once './.debug/autoload.php';`")
-        end
         self.say("\n")
         self.run_services(true)
+
+        if options[:debug]
+            self.say("\n")
+            self.say(TTY::Markdown.parse("# ACTION REQUIRED\nPlease add the following to your config/index page: `require_once './.debug/autoload.php';`"))
+        end
     
     end
 
