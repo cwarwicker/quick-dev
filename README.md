@@ -9,7 +9,7 @@ A docker-based development environment aimed at letting you quickly and easily s
 
 
 ## Requirements
-`ruby 3.0.2+`
+`ruby 3.0.2+` - `sudo apt install ruby-full`
 
 ## Installation
 
