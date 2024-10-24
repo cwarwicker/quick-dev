@@ -1,10 +1,38 @@
 {
   "moodle": {
-    "4.0+": {
+    "4.4+": {
       "app": {
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.3
+        }
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    },
+    "4.2+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.2
+        }
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    },
+    "4.1+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.1
         }
       },
       "db": {
