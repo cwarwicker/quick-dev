@@ -179,3 +179,11 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
 
 - Add support for more project types
 
+
+## FAQ
+
+- **Why did a git patch fail to apply when I created a `moodle` project?**
+
+    Moodle currently doesn't support the web server Quick-Dev uses (Caddy), though there is an opten tracker item for it: https://tracker.moodle.org/browse/MDL-83391
+    So we have to apply a patch to the setuplib.php to let it work. If this fails or conflicts, you'll need to double check your setuplib.php to make sure it's got the patch in it.
+    See: `.docker/templates/moodle/01_caddy.patch`
