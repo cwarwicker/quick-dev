@@ -3,10 +3,28 @@
     "4.0+": {
       "app": {
         "image": "quick-dev:php:moodle",
-        "args": {"PHP_VERSION": 8.3}
+        "args": {
+          "PHP_VERSION": 8.3
+        }
       },
       "db": {
         "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    }
+  },
+  "totara": {
+    "16+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.1
+        }
+      },
+      "db": {
+        "image": "mariadb:10.6"
       },
       "cache": {
         "image": "redis:7.4.1"
@@ -17,7 +35,9 @@
     "11": {
       "app": {
         "image": "quick-dev:php:laravel",
-        "args": {"PHP_VERSION": 8.3}
+        "args": {
+          "PHP_VERSION": 8.3
+        }
       },
       "db": {
         "image": "mariadb:11.5.2"
