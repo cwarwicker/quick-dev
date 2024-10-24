@@ -66,6 +66,10 @@ class QuickDev
             #     self.run_cluster()
             when 'services'
                 self.run_services()
+            when 'backup'
+                self.run_backup()
+            when 'restore'
+                self.run_restore()
             else
                 self.run_cmd()
 
@@ -100,6 +104,10 @@ class QuickDev
             remove          Completely remove the project from quick-dev
             services        Lists all running services in the project and their endpoints
                             [-a|--all] Includes the core quick-dev services
+            backup          Backup the application database
+                            [-u|--user] The database user with backup permissions (defualt: user)
+                            [-p|--password] The database user's password (default: password)
+                            [-d|--db] The database name (default: main)
             <x>             Runs a project-specific command.
                             [command] The command to run. E.g. `artisan tinker` (laravel) or `purge` (moodle)
             cmd             Run any arbitrary command on the application console
@@ -123,17 +131,93 @@ class QuickDev
 
     # Check if we are currently within an apps project directory.
     # @return [Boolean]
-    def is_in_app_dir()
+    def self.is_in_app_dir()
         return Dir.pwd.start_with?(QUICK_DEV_PATH + '/apps/')
+    end
+
+    # Backup the attached database
+    def run_backup()
+
+        # Load up what info we can from the dir.
+        @project = Project.load()
+
+        # Do we have a DB service?
+        unless self.project.config.key?(:db)
+            abort('No database service defined for this project')
+        end
+
+        type = self.project.config[:db][:type]
+
+        # Define additional arguments which can be passed to the `backup` command.
+        options = {'user': 'user', 'password': 'password', 'db': 'main'}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd backup [options]"
+            opts.on('-u=user', '--user=user','Which database user to use (Default: `user`)')
+            opts.on('-p=password', '--password=password', 'The user\'s password (Default: `password`)')
+            opts.on('-d=database', '--db=database', 'Which database to backup (Default: `main`)')
+        end.parse!(into: options)
+
+        file_name = QUICK_DEV_PATH + '/backups/' + self.project.name + '-' + options[:db] + '-' + Time.now.strftime("%Y-%m-%d")
+
+        if type === 'mariadb'
+            file_name = file_name + '.sql'
+            system("docker exec -it #{self.project.name}-db mariadb-dump -u #{options[:user]} -p#{options[:password]} --databases #{options[:db]} > #{file_name}")
+        elsif type ==='mysql'
+            file_name = file_name + '.sql'
+            system("docker exec -it #{self.project.name}-db bash -c 'export MYSQL_PWD=#{options[:password]}; mysqldump -u #{options[:user]} --databases #{options[:db]} --no-tablespaces' > #{file_name}")
+        elsif type === 'postgres'
+            file_name = file_name + '.pgdump'
+            local_file = '/tmp/' + File.basename(file_name)
+            system("docker exec -it #{self.project.name}-db bash -c 'PGPASSWORD=#{options[:password]} pg_dump -Fc -U #{options[:user]} -d #{options[:db]} > #{local_file}'")
+            system("docker cp #{self.project.name}-db:#{local_file} #{file_name}")
+        end
+
+        self.say("File created: #{file_name}")
+
+    end
+
+    # Restore a database dump to the database container
+    def run_restore()
+
+        # Load up what info we can from the dir.
+        @project = Project.load()
+
+        # Do we have a DB service?
+        unless self.project.config.key?(:db)
+            abort('No database service defined for this project')
+        end
+
+        type = self.project.config[:db][:type]
+        file_name = ARGV[1]
+
+        unless file_name
+            abort("First argument must be the dump file to restore")
+        end
+
+        # Define additional arguments which can be passed to the `backup` command.
+        options = {'user': 'user', 'password': 'password', 'db': 'main'}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd backup [options]"
+            opts.on('-u=user', '--user=user','Which database user to use (Default: `user`)')
+            opts.on('-p=password', '--password=password', 'The user\'s password (Default: `password`)')
+            opts.on('-d=database', '--db=database', 'Which database to backup (Default: `main`)')
+        end.parse!(into: options)
+
+        if type === 'mariadb'
+            system("docker exec -i #{self.project.name}-db bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]}' < #{file_name}")
+        elsif type ==='mysql'
+            system("cat #{file_name} | docker exec -i #{self.project.name}-db bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]}'")
+        elsif type === 'postgres'
+            system("docker cp #{file_name} #{self.project.name}-db:/tmp")
+            system("docker exec -i #{self.project.name}-db bash -c 'dropdb #{options[:db]} -U #{options[:user]}'")
+            local_file = '/tmp/' + File.basename(file_name)
+            system("docker exec -i #{self.project.name}-db bash -c 'pg_restore -C -U #{options[:user]} -d postgres #{local_file}'")
+        end
+
     end
 
     # Run the config command on your project.
     def run_config()
-
-        # Must be inside an app directory.
-        unless self.is_in_app_dir()
-           abort("Must be inside an app")
-        end
 
         # Load up what info we can from the dir.
         @project = Project.create()
@@ -141,10 +225,15 @@ class QuickDev
         # Check if the config file already exists.
         config_file = project.dir + '/cfg.yaml'
         if File.exist?(config_file)
-            if self.prompt.select("Existing #{config_file} found. Do you wish to make a backup?", %w(yes no)) === 'yes'
-                FileUtils.mv(config_file, config_file + '.backup')
+            if self.prompt.select("Existing config file(s) found. Do you wish to make a backup?", %w(yes no)) === 'yes'
+                FileUtils.cp(config_file, config_file + '.backup')
+                FileUtils.cp(project.dir + '/docker-compose.yml', project.dir + '/docker-compose.yml' + '.backup')
             end
         end
+
+        # Delete the config files.
+        File.delete(config_file)
+        File.delete(project.dir + '/docker-compose.yml')
 
         # Load the services JSON.
         services = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services.json'))
@@ -517,6 +606,8 @@ class QuickDev
     # Stop the project containers.
     def run_stop()
 
+        @project = Project.load()
+
         # Define additional arguments which can be passed to the `up` command.
         options = {:all => false}
         OptionParser.new do |opts|
@@ -536,6 +627,8 @@ class QuickDev
 
     # Destroy the project containers.
     def run_destroy()
+
+        @project = Project.load()
 
         # Define additional arguments which can be passed to the `up` command.
         options = {:all => false}

@@ -6,16 +6,21 @@ require 'active_support/core_ext/hash/keys'
 require_relative 'const.rb'
 
 class Project
-    
-    ENV_FILE = '.quick-dev.env'
-    
+
     attr_accessor :config, :type, :name, :image, :image_args, :url, :uri, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
+
+        # Must be inside an app directory.
+        unless QuickDev.is_in_app_dir()
+          abort("Must be inside an app")
+        end
+
         project = Project.new
         project.bootstrap()
         return project
+
     end
 
     def self.load()

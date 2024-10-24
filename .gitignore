@@ -1,6 +1,7 @@
 # Ignore these.
 apps/*
 logs/*
+backups/*
 .k8s/*
 .idea/
 .gitlab-token
