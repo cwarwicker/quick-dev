@@ -1,4 +1,5 @@
 <div align="center">
+
 [![forthebadge](https://forthebadge.com/images/badges/made-with-ruby.svg)](https://forthebadge.com)
 
 [![Contributors][contributors-shield]][contributors-url]
@@ -213,17 +214,17 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
 
 
 
-[contributors-shield]: https://img.shields.io/github/contributors/writer-bot/bot.svg?style=flat-square
-[contributors-url]: https://github.com/writer-bot/bot/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/writer-bot/bot.svg?style=flat-square
-[forks-url]: https://github.com/writer-bot/bot/network/members
-[stars-shield]: https://img.shields.io/github/stars/writer-bot/bot.svg?style=flat-square&color=brightgreen
-[stars-url]: https://github.com/writer-bot/bot/stargazers
-[issues-shield]: https://img.shields.io/github/issues/writer-bot/bot.svg?color=orange&style=flat-square&label=open%20issues
-[issues-url]: https://github.com/writer-bot/bot/issues
-[closed-shield]: https://img.shields.io/github/issues-pr-closed-raw/writer-bot/bot?color=purple&style=flat-square
-[closed-url]: https://github.com/writer-bot/bot/pulls?q=is%3Apr+is%3Aclosed
-[closed-issues-shield]: https://img.shields.io/github/issues-closed-raw/writer-bot/bot?color=purple&style=flat-square
-[closed-issues-url]: https://github.com/writer-bot/bot/issues?q=is%3Aissue+is%3Aclosed
-[open-shield]: https://img.shields.io/github/issues-pr/writer-bot/bot?color=orange&style=flat-square
-[open-url]: https://github.com/writer-bot/bot/pulls
+[contributors-shield]: https://img.shields.io/github/contributors/cwarwicker/quick-dev.svg?style=flat-square
+[contributors-url]: https://github.com/cwarwicker/quick-dev/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/cwarwicker/quick-dev.svg?style=flat-square
+[forks-url]: https://github.com/cwarwicker/quick-dev/network/members
+[stars-shield]: https://img.shields.io/github/stars/cwarwicker/quick-dev.svg?style=flat-square&color=brightgreen
+[stars-url]: https://github.com/cwarwicker/quick-dev/stargazers
+[issues-shield]: https://img.shields.io/github/issues/cwarwicker/quick-dev.svg?color=orange&style=flat-square&label=open%20issues
+[issues-url]: https://github.com/cwarwicker/quick-dev/issues
+[closed-shield]: https://img.shields.io/github/issues-pr-closed-raw/cwarwicker/quick-dev?color=purple&style=flat-square
+[closed-url]: https://github.com/cwarwicker/quick-dev/pulls?q=is%3Apr+is%3Aclosed
+[closed-issues-shield]: https://img.shields.io/github/issues-closed-raw/cwarwicker/quick-dev?color=purple&style=flat-square
+[closed-issues-url]: https://github.com/cwarwicker/quick-dev/issues?q=is%3Aissue+is%3Aclosed
+[open-shield]: https://img.shields.io/github/issues-pr/cwarwicker/quick-dev?color=orange&style=flat-square
+[open-url]: https://github.com/cwarwicker/quick-dev/pulls
