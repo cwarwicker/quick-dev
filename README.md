@@ -1,3 +1,15 @@
+<div align="center">
+[![forthebadge](https://forthebadge.com/images/badges/made-with-ruby.svg)](https://forthebadge.com)
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+
+[![Issues][issues-shield]][issues-url]
+[![ClosedIssues][closed-issues-shield]][closed-issues-url]
+[![PR][open-shield]][open-url]
+[![ClosedPR][closed-shield]][closed-url]
+</div>
 
 # Quick-Dev
 
@@ -5,7 +17,18 @@
     <img src="logo.png" style="width:150px;">
 </div>
 
-A docker-based development environment aimed at letting you quickly and easily spin-up dev environments for different project types.
+A docker-based development environment aimed at letting you quickly and easily spin-up dev environments for different project types, with minimal fuss and learning curve.
+
+## Table of Contents
+
+* [Requirements](#requirements)
+* [Installation](#installation)
+* [Adding a new project](#adding-a-new-project)
+* [Roadmap](#roadmap)
+* [FAQ](#faq)
+
+
+
 
 
 ## Requirements
@@ -187,3 +210,20 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
     Moodle currently doesn't support the web server Quick-Dev uses (Caddy), though there is an opten tracker item for it: https://tracker.moodle.org/browse/MDL-83391
     So we have to apply a patch to the setuplib.php to let it work. If this fails or conflicts, you'll need to double check your setuplib.php to make sure it's got the patch in it.
     See: `.docker/templates/moodle/01_caddy.patch`
+
+
+
+[contributors-shield]: https://img.shields.io/github/contributors/writer-bot/bot.svg?style=flat-square
+[contributors-url]: https://github.com/writer-bot/bot/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/writer-bot/bot.svg?style=flat-square
+[forks-url]: https://github.com/writer-bot/bot/network/members
+[stars-shield]: https://img.shields.io/github/stars/writer-bot/bot.svg?style=flat-square&color=brightgreen
+[stars-url]: https://github.com/writer-bot/bot/stargazers
+[issues-shield]: https://img.shields.io/github/issues/writer-bot/bot.svg?color=orange&style=flat-square&label=open%20issues
+[issues-url]: https://github.com/writer-bot/bot/issues
+[closed-shield]: https://img.shields.io/github/issues-pr-closed-raw/writer-bot/bot?color=purple&style=flat-square
+[closed-url]: https://github.com/writer-bot/bot/pulls?q=is%3Apr+is%3Aclosed
+[closed-issues-shield]: https://img.shields.io/github/issues-closed-raw/writer-bot/bot?color=purple&style=flat-square
+[closed-issues-url]: https://github.com/writer-bot/bot/issues?q=is%3Aissue+is%3Aclosed
+[open-shield]: https://img.shields.io/github/issues-pr/writer-bot/bot?color=orange&style=flat-square
+[open-url]: https://github.com/writer-bot/bot/pulls
