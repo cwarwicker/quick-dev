@@ -96,6 +96,7 @@ class QuickDev
                             [-p|--preset] Choose from a preset configuration
             up              Starts the project containers
                             [-r|--rebuild] Rebuild the images
+                            [-d|--debug] Install the composer packages required for buggregator service
             stop            Stops the project containers
                             [-a|--all] Includes the core quick-dev system containers
             destroy         Stops and deletes the project containers
