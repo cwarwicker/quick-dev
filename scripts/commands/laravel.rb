@@ -1,6 +1,8 @@
-class Laravel
+require_relative 'php.rb'
 
-    def artisan(container)
+class Laravel < Php
+
+    def artisan(container, qd)
         cmd = ARGV[1..-1].join(' ')
         system("docker exec -it #{container} php artisan #{cmd}")
     end

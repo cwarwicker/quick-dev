@@ -515,10 +515,10 @@ class QuickDev
         all_class = self.get_class('All')
         if project_class and project_class.respond_to?(command)
             container = self.project.name + '-app'
-            project_class.send(command, container)
+            project_class.send(command, container, self)
         elsif all_class and all_class.respond_to?(command)
             container = self.project.name + '-app'
-            all_class.send(command, container)
+            all_class.send(command, container, self)
         else
             self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
         end
@@ -668,7 +668,6 @@ class QuickDev
         OptionParser.new do |opts|
             opts.banner = "Usage: qd up [options]"
             opts.on('-r', '--rebuild', 'Rebuild the docker image(s)') { options[:rebuild] = 'rebuild' }
-            opts.on('-d', '--install-debug', 'Install debugging packages (Run first time you up the project)') { options[:debug] = 'debug' }
         end.parse!
         
         # Build the docker-compose file if it's missing.
@@ -698,27 +697,8 @@ class QuickDev
         # Run any service post-up hooks or init hooks.
         self.execute_hooks('post_up')
 
-        if options[:debug]
-        
-            # Install debugging services and configuration to work with buggregator.
-            system("docker exec -it #{self.project.name}-app composer require --dev spatie/ray -W")
-            system("docker exec -it #{self.project.name}-app composer require --dev sentry/sentry -W")
-            system("docker exec -it #{self.project.name}-app composer require --dev inspector-apm/inspector-php -W")
-            system("docker exec -it #{self.project.name}-app composer require --dev spiral-packages/profiler -W")
-
-            Dir.glob(QUICK_DEV_PATH + '/.docker/templates/.config/*.php').each do |file_name|
-                self.copy_template(file_name, self.project.dir + '/.debug/')
-            end
-
-        end
-
         self.say("\n")
         self.run_services(true)
-
-        if options[:debug]
-            self.say("\n")
-            self.say(TTY::Markdown.parse("# ACTION REQUIRED\nPlease add the following to your config/index page: `require_once './.debug/autoload.php';`"))
-        end
     
     end
 

@@ -1,11 +1,11 @@
 class All
 
-    def npm(container)
+    def npm(container, qd)
         cmd = ARGV[1..-1].join(' ')
         system("docker exec -it #{container} npm #{cmd}")
     end
 
-    def cmd(container)
+    def cmd(container, qd)
         cmd = ARGV[1..-1].join(' ')
         system("docker exec -it #{container} #{cmd}")
     end
