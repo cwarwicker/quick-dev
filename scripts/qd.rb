@@ -432,6 +432,45 @@ class QuickDev
 
         end
 
+        # Hooks.
+        any_hooks = self.prompt.multi_select("Do you want to add hooks to any of your services?") do |menu|
+            menu.choice :Application, 'app'
+
+            if other_services.include?('db')
+                menu.choice :Database, 'db'
+            end
+
+            if other_services.include?('cache')
+                menu.choice :Caching, 'cache'
+            end
+        end
+
+        hooks = {}
+        if any_hooks
+
+            any_hooks.each do |srv|
+
+                # Select the hook types they want.
+                hooks[srv] = self.prompt.multi_select("Which hooks do you want to add to your #{srv} service?") do |menu|
+                    # menu.choice "Init - Container script. Run after first time containers are started.", 'init'
+                    menu.choice "Pre-Up - Host script. Run just before the containers are started.", 'pre_up'
+                    menu.choice "Post-Up - Container script. Run just after the containers are started.", 'post_up'
+                    menu.choice "Pre-Stop - Container script. Run just before the containers are stopped.", 'pre_stop'
+                    menu.choice "Post-Stop - Host script. Run just after the containers are stopped.", 'post_stop'
+                end
+
+                # Enter the hook script path.
+                if hooks[srv]
+                    data[srv.intern][:hooks] = {}
+                    hooks[srv].each do |hook|
+                        data[srv.intern][:hooks][hook] = []
+                        data[srv.intern][:hooks][hook].push(self.prompt.ask("Enter the path of the script for this hook (#{hook}): "))
+                    end
+                end
+
+            end
+        end
+
         self.save_config(data, config_file)
 
     end
@@ -648,9 +687,16 @@ class QuickDev
             system("docker compose pull")
             system("docker compose build --no-cache")
         end
-        
+
+
+        # Run any service pre-up hooks.
+        self.execute_hooks('pre_up')
+
         # Bring up project containers.
         system("docker compose up -d")
+
+        # Run any service post-up hooks or init hooks.
+        self.execute_hooks('post_up')
 
         if options[:debug]
         
@@ -676,6 +722,28 @@ class QuickDev
     
     end
 
+    # Execute hook on the host or service container, depending on the hook type
+    # @param [String] hook_type
+    def execute_hooks(hook_type)
+
+        services = self.project.config
+        services.each do |service, type|
+            unless type[:hooks].nil? or type[:hooks][hook_type].nil?
+                type[:hooks][hook_type].each do |script|
+                    if hook_type === 'pre_up' or hook_type === 'post_stop'
+                        self.say("Running {#{hook_type}} hook on host: `#{script}`")
+                        system(script)
+                    elsif hook_type === 'post_up' or hook_type === 'pre_stop'
+                        self.say("Running {#{hook_type}} hook on service (#{service}): `#{script}`")
+                        container = self.project.name + '-' + service.to_s
+                        system("docker exec -it #{container} #{script}")
+                    end
+                end
+            end
+        end
+
+    end
+
     # Stop the project containers.
     def run_stop()
 
@@ -693,8 +761,12 @@ class QuickDev
             system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml stop")
         end
 
+        self.execute_hooks('pre_stop')
+
         # Stop the project containers.
         system("docker compose stop")
+
+        self.execute_hooks('post_stop')
 
     end
 

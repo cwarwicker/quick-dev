@@ -5,7 +5,7 @@ moodle.localhost {
     tls internal
 
     php_fastcgi moodle-app:9000 {
-        root /var/www/site
+        root /app
     }
 
     log {
