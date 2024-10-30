@@ -74,5 +74,27 @@
         "image": "redis:7.4.1"
       }
     }
+  },
+  "django": {
+    "5": {
+      "app": {
+        "image": "quick-dev:python:django",
+        "args": {
+          "PYTHON_VERSION": 3.13
+        },
+        "ports": "9090:9090",
+        "hooks": {
+          "post_up": [
+            "pip install -r requirements.txt"
+          ]
+        }
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    }
   }
 }

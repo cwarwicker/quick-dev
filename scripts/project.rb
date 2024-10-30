@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :config, :type, :name, :image, :image_args, :url, :uri, :dir, :working_dir, :requires
+    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :url, :uri, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -38,7 +38,9 @@ class Project
         project.type = project.config[:app][:type]
         project.image = project.config[:app][:image]
         project.image_args = project.config[:app][:args]
+        project.ports = project.config[:app][:ports].split(',') if !project.config[:app][:ports].nil?
         project.requires = project.config[:app][:requires]
+        project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil?
         project.working_dir = '/app'
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
@@ -74,8 +76,13 @@ class Project
           ],
           'networks': [
             'quick-dev-network'
-          ]
+          ],
+          'stdin_open': true
         }
+
+        if self.ports
+            data['services']['app']['ports'] = self.ports;
+        end
 
         # If we are using a quick-dev image, we need a build context.
         if self.image.start_with?('quick-dev:')
@@ -90,7 +97,7 @@ class Project
             'args': self.image_args
           }
 
-          data['services']['app']['image'] = 'quick-dev:' + self.name
+          data['services']['app']['image'] = 'quick-dev:' + self.name + '-app'
 
         else
           data['services']['app']['image'] = self.image
@@ -143,5 +150,20 @@ class Project
         File.write(self.dir + '/docker-compose.yml', data.deep_stringify_keys.to_yaml)
 
     end
-    
+
+    # Get the URL of the main application
+    # This might sometimes return an invalid url if the application isn't web-based, but currently not got a way to define that.
+    def get_url()
+
+      url = "https://#{self.name}.localhost"
+
+      if self.ports
+        # Assumption is that the first port mapping is the main one.
+        url = url + ':' + self.ports[0].split(':')[0]
+      end
+
+      return url
+
+    end
+
 end

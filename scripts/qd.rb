@@ -52,6 +52,8 @@ class QuickDev
                 self.run_help()
             when 'config'
                 self.run_config()
+            when 'build'
+                self.run_build()
             when 'up'
                 self.run_up()
             when 'stop'
@@ -238,13 +240,23 @@ class QuickDev
         data[:app] = {
           'type': choice['type'],
           'image': choice['app']['image'],
-          'args': {}
+          'args': {},
+          'ports': [],
+          'hooks': {}
         }
 
         if choice['app']['args']
             choice['app']['args'].each do |arg, value|
                 data[:app][:args][arg] = value
             end
+        end
+
+        if choice['app']['ports']
+            data[:app][:ports] = choice['app']['ports']
+        end
+
+        if choice['app']['hooks']
+            data[:app][:hooks] = choice['app']['hooks']
         end
 
         if choice['db']
@@ -286,7 +298,7 @@ class QuickDev
         if File.exist?(config_file)
             if self.prompt.select("Existing config file(s) found. Do you wish to make a backup?", %w(yes no)) === 'yes'
                 FileUtils.cp(config_file, config_file + '.backup')
-                FileUtils.cp(docker_file, docker_file + '.backup')
+                FileUtils.cp(docker_file, docker_file + '.backup') if File.exist?(docker_file)
             end
         end
 
@@ -348,6 +360,15 @@ class QuickDev
                 end
             end
         end
+
+        # What port needs to be mapped for this application?
+        ports = '80:80'
+        services['apps'].each do |obj|
+            if obj['name'] == data[:app][:type] and obj.key?('ports')
+                ports = obj['ports']
+            end
+        end
+        data[:app][:ports] = self.prompt.ask("Which port needs to be mapped for this application?", default: ports)
 
         # Add any additional required services linked to this type. E.g. Caddy for most web-based app types.
         services['apps'].each do |obj|
@@ -558,7 +579,7 @@ class QuickDev
 
             # Not sure at the moment how else to know which ones will have URLs.
             if "#{name}" == 'app'
-                url = "https://#{self.project.name}.localhost"
+                url = self.project.get_url()
             end
 
             content = content + "#{self.project.name}-#{name}#{delim}#{service[:type]}#{delim}#{status}#{delim}#{url}\n"
@@ -658,6 +679,24 @@ class QuickDev
 
     end
     
+    # Build the docker-compose file and the containers, but don't bring them up yet
+    def run_build()
+
+        @project = Project.load()
+
+        # Delete the docker-compose if it exists
+        docker_file = project.dir + '/docker-compose.yml'
+        File.delete(docker_file) if File.exist?(docker_file)
+
+        # Build the docker-compose file from scratch.
+        project.build_docker_compose()
+
+        # Build images and containers.
+        system("docker compose pull")
+        system("docker compose build --no-cache")
+
+    end
+
     # Start the project containers.
     def run_up()
 

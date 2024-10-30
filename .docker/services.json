@@ -1,22 +1,39 @@
 {
   "apps": [
     {
+      "name": "php",
+      "lang": "php",
+      "image": "quick-dev:php:base",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}],
+      "ports": "80:80"
+    },
+    {
       "name": "laravel",
       "lang": "php",
       "image": "quick-dev:php:laravel",
-      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+      "args": [{"name": "PHP_VERSION", "default": 8.3}],
+      "ports": "80:80"
     },
     {
       "name": "moodle",
       "lang": "php",
       "image": "quick-dev:php:moodle",
-      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+      "args": [{"name": "PHP_VERSION", "default": 8.3}],
+      "ports": "80:80"
     },
     {
-      "name": "php",
-      "lang": "php",
-      "image": "quick-dev:php:base",
-      "args": [{"name": "PHP_VERSION", "default": 8.3}]
+      "name": "python",
+      "lang": "python",
+      "image": "quick-dev:python:base",
+      "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
+      "ports": "9090:9090"
+    },
+    {
+      "name": "django",
+      "lang": "python",
+      "image": "quick-dev:python:django",
+      "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
+      "ports": "9090:9090"
     },
     {
       "name": "other"
