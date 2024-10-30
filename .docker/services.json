@@ -26,14 +26,14 @@
       "lang": "python",
       "image": "quick-dev:python:base",
       "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
-      "ports": "9090:9090"
+      "ports": "8111:8000"
     },
     {
       "name": "django",
       "lang": "python",
       "image": "quick-dev:python:django",
       "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
-      "ports": "9090:9090"
+      "ports": "8111:8000"
     },
     {
       "name": "other"

@@ -82,7 +82,7 @@
         "args": {
           "PYTHON_VERSION": 3.13
         },
-        "ports": "9090:9090",
+        "ports": "8111:8000",
         "hooks": {
           "post_up": [
             "pip install -r requirements.txt"
