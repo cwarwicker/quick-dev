@@ -559,13 +559,6 @@ class QuickDev
 
         @project = Project.load()
 
-        # Define additional arguments which can be passed to the `up` command.
-        options = {}
-        OptionParser.new do |opts|
-            opts.banner = "Usage: qd services [options]"
-            opts.on('-a', '--all', 'Stop all the core quick-dev containers as well') { options[:all] = true }
-        end.parse!
-
         # Load the docker-compose file (we use this instead of cfg.yml incase of custom changes).
         delim = "{@}"
         content = "PROJECT SERVICES (#{self.project.name})\n\n"
@@ -586,16 +579,14 @@ class QuickDev
 
         end
 
-        if all or options[:all]
-            content = content + "\n----------\n"
-            content = content + "CORE SERVICES\n\n"
-            content = content + "NAME#{delim}STATUS#{delim}URL\n"
+        content = content + "\n----------\n"
+        content = content + "CORE SERVICES\n\n"
+        content = content + "NAME#{delim}STATUS#{delim}URL\n"
 
-            # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
-            content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
-            content = content + "quick-dev-debug#{delim}#{self.get_service_status('quick-dev-debug').strip}#{delim}http://buggregator.localhost:8000\n"
-            content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
-        end
+        # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
+        content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
+        content = content + "quick-dev-debug#{delim}#{self.get_service_status('quick-dev-debug').strip}#{delim}http://buggregator.localhost:8000\n"
+        content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
 
         system("echo '#{content}' | column -t -s'#{delim}'")
 
