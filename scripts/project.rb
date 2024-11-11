@@ -38,9 +38,9 @@ class Project
         project.type = project.config[:app][:type]
         project.image = project.config[:app][:image]
         project.image_args = project.config[:app][:args]
-        project.ports = project.config[:app][:ports].split(',') if !project.config[:app][:ports].nil?
+        project.ports = project.config[:app][:ports].split(',') if !project.config[:app][:ports].nil? and !project.config[:app][:ports].empty?
         project.requires = project.config[:app][:requires]
-        project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil?
+        project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil? and !project.config[:app][:hooks].empty?
         project.working_dir = '/app'
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
