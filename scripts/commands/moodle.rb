@@ -3,7 +3,7 @@ require_relative 'php.rb'
 class Moodle < Php
 
     def install(container, qd)
-       system("docker exec -it #{container} php admin/cli/install_database.php --agree-license --adminuser=admin --adminpass=password --adminemail=admin@local.host")
+       system("docker exec -it #{container} php admin/cli/install_database.php --agree-license --adminuser=admin --adminpass=moodle --adminemail=admin@local.host --fullname=Moodle --shortname=Moodle")
     end
 
     def purge(container, qd)
@@ -11,7 +11,7 @@ class Moodle < Php
     end
 
     def upgrade(container, qd)
-       system("docker exec -it #{container} php admin/cli/upgrade.php")
+       system("docker exec -it #{container} php admin/cli/upgrade.php -y")
     end
 
 end
