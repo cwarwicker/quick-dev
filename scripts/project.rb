@@ -34,7 +34,6 @@ class Project
         end
 
         project.config = YAML.load_file(config_file)
-        p project.config[:db][:type]
 
         project.type = project.config[:app][:type]
         project.image = project.config[:app][:image]
