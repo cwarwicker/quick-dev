@@ -28,5 +28,4 @@ $CFG->site_is_public = false;
 $CFG->smtphosts = 'quick-dev-debug:1025';
 $CFG->smtpuser = '';
 $CFG->smtppass = '';
-
-require_once(__DIR__ . '/lib/setup.php');
+$CFG->upgradekey = 'totara';
