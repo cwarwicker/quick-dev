@@ -3,7 +3,7 @@ unset($CFG);  // Ignore this line
 global $CFG;  // This is necessary here for PHPUnit execution
 $CFG = new stdClass();
 
-$CFG->dbtype    = 'mariadb';
+$CFG->dbtype    = '%project.db%';
 $CFG->dblibrary = 'native';
 $CFG->dbhost    = '%project.name%-db';
 $CFG->dbname    = 'main';

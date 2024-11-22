@@ -820,6 +820,7 @@ class QuickDev
             '%project.url%' => self.project.url,
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
+            '%project.db%' => self.project.db,
             '%root%' => QUICK_DEV_PATH,
         }
 
@@ -852,6 +853,12 @@ class QuickDev
             self.say("#{file_name} ==> #{caddy_path}")
 
         else
+
+            # Moodle/Totara have some bits that need changing.
+            if ['moodle', 'totara'].include?(self.project.type)
+                replace_map['%project.db%'] = 'pgsql' if self.project.db == 'postgres'
+                replace_map['%project.db%'] = 'mysqli' if self.project.db == 'mysql'
+            end
 
             # Copy the file into the site directory.
             FileUtils.cp(file_name, new_file_name)

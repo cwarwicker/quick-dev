@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :url, :uri, :dir, :working_dir, :requires
+    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :url, :uri, :db, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -34,6 +34,7 @@ class Project
         end
 
         project.config = YAML.load_file(config_file)
+        p project.config[:db][:type]
 
         project.type = project.config[:app][:type]
         project.image = project.config[:app][:image]
@@ -44,6 +45,7 @@ class Project
         project.working_dir = '/app'
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
+        project.db = project.config[:db][:type]
 
         return project
 
