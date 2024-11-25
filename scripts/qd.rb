@@ -259,6 +259,10 @@ class QuickDev
             data[:app][:hooks] = choice['app']['hooks']
         end
 
+        if choice['app']['patches']
+            data[:app][:patches] = choice['app']['patches']
+        end
+
         if choice['db']
             split = choice['db']['image'].split(':')
             data[:db] = {
@@ -515,9 +519,14 @@ class QuickDev
             self.copy_template(file_name)
         end
 
-        # Run any git patches which are required.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/*.patch').each do |file_name|
-            self.apply_patch(file_name)
+        # Apply any patches required.
+        unless self.project.config[:app][:patches].nil?
+            self.project.config[:app][:patches].each do |patch|
+               file = QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/' + patch + '.patch'
+               if File.exist?(file)
+                   self.apply_patch(file)
+               end
+            end
         end
 
         self.say("Project configured (#{config_file}). Run `qd up` to bring up the containers.")

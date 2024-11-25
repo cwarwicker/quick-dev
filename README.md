@@ -212,6 +212,12 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
     So we have to apply a patch to the setuplib.php to let it work. If this fails or conflicts, you'll need to double check your setuplib.php to make sure it's got the patch in it.
     See: `.docker/templates/moodle/01_caddy.patch`
 
+- **I created a Moodle or Totara project but it errors on "Caddy is not available"**
+
+    When you create a Moodle/Totara project via a preset configuration, a patch should be applied automatically (see above) to fix the problem of the codebase not allowing certain web servers. If you craete the project manually, you'll need to apply that patch manually as well, e.g. `git apply ./docker/templates/moodle/01_caddy.patch` or `git apply ./docker/templates/totara/01_caddy.patch`
+
+    NOTE: In Moodle 5.0 and above this is not necessary.
+
 
 
 [contributors-shield]: https://img.shields.io/github/contributors/cwarwicker/quick-dev.svg?style=flat-square

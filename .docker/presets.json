@@ -1,11 +1,28 @@
 {
   "moodle": {
+    "5.0+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.4
+        }
+      },
+      "db": {
+        "image": "mariadb:11.5.2"
+      },
+      "cache": {
+        "image": "redis:7.4.1"
+      }
+    },
     "4.4+": {
       "app": {
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.3
-        }
+        },
+        "patches": [
+          "01_caddy", "test", "three"
+        ]
       },
       "db": {
         "image": "mariadb:11.5.2"
@@ -19,7 +36,10 @@
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.2
-        }
+        },
+        "patches": [
+          "01_caddy"
+        ]
       },
       "db": {
         "image": "mariadb:11.5.2"
@@ -33,7 +53,10 @@
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.1
-        }
+        },
+        "patches": [
+          "01_caddy"
+        ]
       },
       "db": {
         "image": "mariadb:11.5.2"
@@ -49,7 +72,10 @@
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.1
-        }
+        },
+        "patches": [
+          "01_caddy"
+        ]
       },
       "db": {
         "image": "mariadb:10.6"

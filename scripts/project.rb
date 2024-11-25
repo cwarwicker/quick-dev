@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :url, :uri, :db, :dir, :working_dir, :requires
+    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :url, :uri, :db, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -41,6 +41,7 @@ class Project
         project.ports = project.config[:app][:ports].split(',') if !project.config[:app][:ports].nil? and !project.config[:app][:ports].empty?
         project.requires = project.config[:app][:requires]
         project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil? and !project.config[:app][:hooks].empty?
+        project.patches = project.config[:app][:patches] if !project.config[:app][:patches].nil? and !project.config[:app][:patches].empty?
         project.working_dir = '/app'
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
