@@ -29,3 +29,12 @@ $CFG->smtphosts = 'quick-dev-debug:1025';
 $CFG->smtpuser = '';
 $CFG->smtppass = '';
 $CFG->upgradekey = 'totara';
+
+$CFG->phpunit_prefix = 'phpu_';
+$CFG->phpunit_dataroot = '/var/www/phpunitdata';
+$CFG->phpunit_directorypermissions = 02777;
+$CFG->phpunit_profilingenabled = false;
+
+if (file_exists(__DIR__ . '/config-custom.php')) {
+    require_once __DIR__ . '/config-custom.php';
+}

@@ -11,7 +11,7 @@ class Moodle < Php
     end
 
     def upgrade(container, qd)
-       system("docker exec -it #{container} php admin/cli/upgrade.php -y")
+       system("docker exec -it #{container} php admin/cli/upgrade.php --non-interactive")
     end
 
 end

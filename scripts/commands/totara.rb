@@ -11,7 +11,7 @@ class Totara < Moodle
     end
 
     def upgrade(container, qd)
-       system("docker exec -it #{container} php server/admin/cli/upgrade.php -y")
+       system("docker exec -it #{container} php server/admin/cli/upgrade.php --non-interactive")
     end
 
 end
