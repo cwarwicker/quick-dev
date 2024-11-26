@@ -35,7 +35,7 @@ ARG PHP_VERSION
 FROM base AS moodle
 
 # Install NVM and NodeJS
-RUN apt-get install -y nodejs npm
+RUN apt-get install -y locales-all nodejs npm
 
 ENV NVM_DIR=/usr/local/nvm
 ENV NODE_VERSION=v20.17.0
