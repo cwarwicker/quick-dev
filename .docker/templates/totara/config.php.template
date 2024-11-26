@@ -10,6 +10,13 @@ $CFG->dbname    = 'main';
 $CFG->dbuser    = 'user';
 $CFG->dbpass    = 'password';
 $CFG->prefix    = 'mdl_';
+$CFG->dboptions = array(
+    'dbpersist' => false,
+    'dbsocket'  => false,
+    'dbport'    => '',
+    'dbhandlesoptions' => false,
+    'dbcollation' => 'utf8mb4_unicode_ci'
+);
 
 $CFG->wwwroot   = '%project.url%';
 $CFG->dataroot  = '/var/www/data';
