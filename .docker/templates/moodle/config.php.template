@@ -18,7 +18,6 @@ $CFG->dboptions = array(
     'dbcollation' => 'utf8mb4_unicode_ci'
 );
 
-
 $CFG->wwwroot   = '%project.url%';
 $CFG->dataroot  = '/var/www/data';
 $CFG->directorypermissions = 02777;
@@ -41,6 +40,14 @@ $CFG->phpunit_prefix = 'phpu_';
 $CFG->phpunit_dataroot = '/var/www/phpunitdata';
 $CFG->phpunit_directorypermissions = 02777;
 $CFG->phpunit_profilingenabled = false;
+
+$CFG->behat_wwwroot = 'http://internal';
+$CFG->behat_prefix = 'behat_';
+$CFG->behat_dataroot = '/var/www/behatdata';
+
+if (file_exists('/var/www/moodle-browser-config/init.php')) {
+    require_once '/var/www/moodle-browser-config/init.php';
+}
 
 if (file_exists(__DIR__ . '/config-custom.php')) {
     require_once __DIR__ . '/config-custom.php';

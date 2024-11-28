@@ -52,4 +52,7 @@ RUN mkdir -p /var/www/data && chmod 0777 /var/www/data
 ADD ./moodle/php.ini /usr/local/etc/php/conf.d/custom.ini
 ADD ./moodle/cli.php.ini /usr/local/php/conf.d/custom-cli.ini
 
+# Clone the moodle-browser-config plugin for behat.
+RUN git clone https://github.com/andrewnicols/moodle-browser-config.git /var/www/moodle-browser-config
+
 ############################## END ########################################

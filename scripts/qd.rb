@@ -263,6 +263,12 @@ class QuickDev
             data[:app][:patches] = choice['app']['patches']
         end
 
+        # If a /mnt directory exists within the template directory, add that as a mount volume.
+        mnt = QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/mnt'
+        if Dir.exist?(mnt)
+            data[:app][:volumes] = [mnt + ':/mnt']
+        end
+
         if choice['db']
             split = choice['db']['image'].split(':')
             data[:db] = {

@@ -32,4 +32,17 @@ class Moodle < Php
        end
     end
 
+    def behat(container, qd)
+       opt = ARGV[1]
+       if opt === "init"
+          # Initialise the behat environment.
+          system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/behat/cli/init.php")
+          # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
+          system("docker exec -itd #{container} php -S internal:80 -t /app")
+       else
+          opts = ARGV[1..-1].join(' ')
+          system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/behat/cli/run.php #{opts}")
+       end
+    end
+
 end

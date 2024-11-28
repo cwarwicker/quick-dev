@@ -5,6 +5,9 @@
         "image": "quick-dev:php:moodle",
         "args": {
           "PHP_VERSION": 8.3
+        },
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
         }
       },
       "db": {

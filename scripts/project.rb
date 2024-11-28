@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :url, :uri, :db, :dir, :working_dir, :requires
+    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :volumes, :url, :uri, :db, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -42,6 +42,7 @@ class Project
         project.requires = project.config[:app][:requires]
         project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil? and !project.config[:app][:hooks].empty?
         project.patches = project.config[:app][:patches] if !project.config[:app][:patches].nil? and !project.config[:app][:patches].empty?
+        project.volumes = project.config[:app][:volumes] if !project.config[:app][:volumes].nil? and !project.config[:app][:volumes].empty?
         project.working_dir = '/app'
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
@@ -81,6 +82,10 @@ class Project
           ],
           'stdin_open': true
         }
+
+        if self.volumes
+            data['services']['app'][:volumes] = data['services']['app'][:volumes] + self.volumes
+        end
 
         if self.ports
             data['services']['app']['ports'] = self.ports;
