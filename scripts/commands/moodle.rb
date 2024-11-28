@@ -14,4 +14,10 @@ class Moodle < Php
        system("docker exec -it #{container} php admin/cli/upgrade.php --non-interactive")
     end
 
+    def makecourse(container, qd)
+       size = ARGV[1]
+       name = ARGV[2]
+       system("docker exec -it #{container} php admin/tool/generator/cli/maketestcourse.php --size=#{size} --shortname=#{name} --fullname=#{name}")
+    end
+
 end
