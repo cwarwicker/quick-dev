@@ -4,7 +4,7 @@
       "app": {
         "image": "quick-dev:php:moodle",
         "args": {
-          "PHP_VERSION": 8.4
+          "PHP_VERSION": 8.3
         }
       },
       "db": {
@@ -21,7 +21,7 @@
           "PHP_VERSION": 8.3
         },
         "patches": [
-          "01_caddy", "test", "three"
+          "01_caddy"
         ]
       },
       "db": {

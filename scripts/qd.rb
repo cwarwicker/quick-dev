@@ -808,7 +808,8 @@ class QuickDev
             system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml down")
         end
 
-        system("docker compose down")
+        # Remove project containers and images.
+        system("docker compose down --rmi")
 
     end
 

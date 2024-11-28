@@ -20,4 +20,14 @@ class Moodle < Php
        system("docker exec -it #{container} php admin/tool/generator/cli/maketestcourse.php --size=#{size} --shortname=#{name} --fullname=#{name}")
     end
 
+    def phpunit(container, qd)
+       opt = ARGV[1]
+       if opt === "init"
+          system("docker exec -it #{container} php admin/tool/phpunit/cli/init.php")
+       else
+          opts = ARGV[1..-1].join(' ')
+          system("docker exec -it #{container} php admin/tool/phpunit/cli/util.php --run #{opts}")
+       end
+    end
+
 end
