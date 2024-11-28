@@ -5,35 +5,42 @@
       "lang": "php",
       "image": "quick-dev:php:base",
       "args": [{"name": "PHP_VERSION", "default": 8.3}],
-      "ports": "80:80"
+      "ports": []
     },
     {
       "name": "laravel",
       "lang": "php",
       "image": "quick-dev:php:laravel",
       "args": [{"name": "PHP_VERSION", "default": 8.3}],
-      "ports": "80:80"
+      "ports": []
     },
     {
       "name": "moodle",
       "lang": "php",
       "image": "quick-dev:php:moodle",
       "args": [{"name": "PHP_VERSION", "default": 8.3}],
-      "ports": "80:80"
+      "ports": []
+    },
+    {
+      "name": "totara",
+      "lang": "php",
+      "image": "quick-dev:php:moodle",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}],
+      "ports": []
     },
     {
       "name": "python",
       "lang": "python",
       "image": "quick-dev:python:base",
       "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
-      "ports": "8111:8000"
+      "ports": ["8111:8000"]
     },
     {
       "name": "django",
       "lang": "python",
       "image": "quick-dev:python:django",
       "args": [{"name": "PYTHON_VERSION", "default": 3.13}],
-      "ports": "8111:8000"
+      "ports": ["8111:8000"]
     },
     {
       "name": "other"

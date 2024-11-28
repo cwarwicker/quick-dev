@@ -365,14 +365,16 @@ class QuickDev
             end
         end
 
-        # What port needs to be mapped for this application?
-        ports = '80:80'
+        # What port(s) need to be mapped for this application?
+        default_ports = []
         services['apps'].each do |obj|
             if obj['name'] == data[:app][:type] and obj.key?('ports')
-                ports = obj['ports']
+                default_ports = obj['ports']
             end
         end
-        data[:app][:ports] = self.prompt.ask("Which port needs to be mapped for this application?", default: ports)
+
+        ports = self.prompt.ask("Which port(s) need to be mapped for this application? (host:container,host:container,...)", default: default_ports.join(","))
+        data[:app][:ports] = ports.split(',')
 
         # Add any additional required services linked to this type. E.g. Caddy for most web-based app types.
         services['apps'].each do |obj|
