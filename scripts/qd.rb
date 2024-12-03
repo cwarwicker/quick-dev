@@ -285,6 +285,16 @@ class QuickDev
             }
         end
 
+        if choice['other']
+            data[:other] = []
+            choice['other'].each do |name, image|
+                data[:other].push({
+                'type': name,
+                'image': image
+             })
+            end
+        end
+
         config_file = project.dir + '/cfg.yaml'
         self.save_config(data, config_file)
 
@@ -584,15 +594,26 @@ class QuickDev
         # Loop through the project services.
         self.project.config.each do |name, service|
 
-            url = ''
-            status = self.get_service_status(self.project.name + '-' + "#{name}").strip
+            display_service = -> (name, service) {
 
-            # Not sure at the moment how else to know which ones will have URLs.
-            if "#{name}" == 'app'
-                url = self.project.get_url()
+                url = ''
+                status = self.get_service_status(self.project.name + '-' + "#{name}").strip
+
+                # Not sure at the moment how else to know which ones will have URLs.
+                if "#{name}" == 'app'
+                    url = self.project.get_url()
+                end
+
+                content = content + "#{self.project.name}-#{name}#{delim}#{service[:type]}#{delim}#{status}#{delim}#{url}\n"
+            }
+
+            if service.is_a?(Array)
+                service.each do |s|
+                    display_service.call(s[:type].to_sym, s)
+                end
+            else
+                display_service.call(name, service)
             end
-
-            content = content + "#{self.project.name}-#{name}#{delim}#{service[:type]}#{delim}#{status}#{delim}#{url}\n"
 
         end
 
@@ -602,8 +623,9 @@ class QuickDev
 
         # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
         content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
-        content = content + "quick-dev-debug#{delim}#{self.get_service_status('quick-dev-debug').strip}#{delim}http://buggregator.localhost:8000\n"
+        content = content + "quick-dev-buggregator#{delim}#{self.get_service_status('quick-dev-buggregator').strip}#{delim}http://buggregator.localhost:8000\n"
         content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
+        content = content + "quick-dev-selenium#{delim}#{self.get_service_status('quick-dev-selenium').strip}#{delim}http://selenium.localhost:4444\n"
 
         system("echo '#{content}' | column -t -s'#{delim}'")
 
@@ -755,7 +777,7 @@ class QuickDev
 
         services = self.project.config
         services.each do |service, type|
-            unless type[:hooks].nil? or type[:hooks][hook_type].nil?
+            unless !(type.is_a?(Hash)) or type[:hooks].nil? or type[:hooks][hook_type].nil?
                 type[:hooks][hook_type].each do |script|
                     if hook_type === 'pre_up' or hook_type === 'post_stop'
                         self.say("Running {#{hook_type}} hook on host: `#{script}`")

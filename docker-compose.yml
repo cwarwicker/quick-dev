@@ -8,7 +8,7 @@ services:
         networks:
             - quick-dev-network
     buggregator:
-        container_name: quick-dev-debug
+        container_name: quick-dev-buggregator
         image: ghcr.io/buggregator/server:latest
         restart: always
         ports:
@@ -31,7 +31,15 @@ services:
             - ./.docker/caddy:/etc/caddy/sites
         networks:
             - quick-dev-network
-
+    selenium:
+        container_name: quick-dev-selenium
+        image: selenium/standalone-chrome:latest
+        networks:
+        - quick-dev-network
+        ports:
+        - "4444:4444"
+        - "7900:7900"
+        shm_size: 2g
 networks:
     quick-dev-network:
         external: true

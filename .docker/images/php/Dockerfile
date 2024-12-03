@@ -8,7 +8,7 @@ FROM php:${PHP_VERSION}-fpm AS base
 RUN apt-get update && apt-get -y upgrade
 
 # Install required packages.
-RUN apt-get -y install curl git libcurl3-dev libonig-dev libpng-dev libpq-dev libxml2-dev libxslt-dev libzip-dev nano zip
+RUN apt-get -y install curl git libcurl3-dev libonig-dev libpng-dev libpq-dev libxml2-dev libxslt-dev libzip-dev nano nodejs npm zip
 
 # Installing additional PHP modules
 RUN docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql
@@ -20,6 +20,14 @@ RUN pecl install excimer && docker-php-ext-enable excimer
 
 # Install Composer.
 COPY --from=composer:2.7.7 /usr/bin/composer /usr/local/bin/composer
+
+# Install node version.
+ENV NVM_DIR=/usr/local/nvm
+ENV NODE_VERSION=v20.17.0
+ENV NODE_PATH=$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules
+ENV PATH=$NVM_DIR/versions/node/$NODE_VERSION/bin:$PATH
+RUN mkdir -p $NVM_DIR && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+RUN /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix $NODE_VERSION"
 
 # Set working directory.
 WORKDIR /app
@@ -34,16 +42,7 @@ FROM base AS laravel
 ARG PHP_VERSION
 FROM base AS moodle
 
-# Install NVM and NodeJS
-RUN apt-get install -y locales-all nodejs npm
-
-ENV NVM_DIR=/usr/local/nvm
-ENV NODE_VERSION=v20.17.0
-ENV NODE_PATH=$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules
-ENV PATH=$NVM_DIR/versions/node/$NODE_VERSION/bin:$PATH
-
-RUN mkdir -p $NVM_DIR && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-RUN /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix $NODE_VERSION"
+RUN apt-get install -y locales-all
 
 # Create sitedata directory.
 RUN mkdir -p /var/www/data && chmod 0777 /var/www/data

@@ -25,7 +25,10 @@
         },
         "patches": [
           "01_caddy"
-        ]
+        ],
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
       },
       "db": {
         "image": "mariadb:11.5.2"
@@ -42,7 +45,10 @@
         },
         "patches": [
           "01_caddy"
-        ]
+        ],
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
       },
       "db": {
         "image": "mariadb:11.5.2"
@@ -59,7 +65,10 @@
         },
         "patches": [
           "01_caddy"
-        ]
+        ],
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
       },
       "db": {
         "image": "mariadb:11.5.2"

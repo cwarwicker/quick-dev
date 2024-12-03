@@ -147,6 +147,29 @@ class Project
 
         end
 
+        # Other services.
+        if self.config[:other]
+
+          self.config[:other].each do |other|
+            data['services'][other[:type]] = {
+              'container_name': self.name + '-' + other[:type],
+              'image': other[:image],
+              'networks': [
+                'quick-dev-network'
+              ]
+            }
+
+            # Read service-specific config to load in.
+            service_path = QUICK_DEV_PATH + '/.docker/services/' + other[:type] + '.service'
+            if File.exist?(service_path)
+              service_config = JSON.parse(File.read(service_path), {symbolize_names: true}) 
+              data['services'][other[:type]] = data['services'][other[:type]].merge(service_config)
+            end
+
+          end
+
+        end
+
         data['networks'] = {
           'quick-dev-network': {
             'external': true
