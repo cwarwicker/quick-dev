@@ -5,7 +5,7 @@ class Moodle < Php
     RELATIVE_DIR = ""
 
     def install(container, qd)
-       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}/admin/cli/install_database.php --agree-license --adminuser=admin --adminpass=moodle --adminemail=admin@local.host --fullname=Moodle --shortname=Moodle")
+       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/cli/install_database.php --agree-license --adminuser=admin --adminpass=moodle --adminemail=admin@local.host --fullname=Moodle --shortname=Moodle")
     end
 
     def purge(container, qd)
