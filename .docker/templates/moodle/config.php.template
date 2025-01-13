@@ -41,7 +41,7 @@ $CFG->phpunit_dataroot = '/var/www/phpunitdata';
 $CFG->phpunit_directorypermissions = 02777;
 $CFG->phpunit_profilingenabled = false;
 
-$CFG->behat_wwwroot = 'http://internal';
+$CFG->behat_wwwroot = 'http://%project.name%-app';
 $CFG->behat_prefix = 'behat_';
 $CFG->behat_dataroot = '/var/www/behatdata';
 

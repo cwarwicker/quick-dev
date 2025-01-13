@@ -625,7 +625,10 @@ class QuickDev
         content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
         content = content + "quick-dev-buggregator#{delim}#{self.get_service_status('quick-dev-buggregator').strip}#{delim}http://buggregator.localhost:8000\n"
         content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
-        content = content + "quick-dev-selenium#{delim}#{self.get_service_status('quick-dev-selenium').strip}#{delim}http://selenium.localhost:4444\n"
+        content = content + "quick-dev-selenium-hub#{delim}#{self.get_service_status('quick-dev-selenium-hub').strip}#{delim}http://selenium.localhost:4444\n"
+        content = content + "quick-dev-chrome#{delim}#{self.get_service_status('quick-dev-chrome').strip}#{delim}http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret\n"
+        content = content + "quick-dev-firefox#{delim}#{self.get_service_status('quick-dev-firefox').strip}#{delim}http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret\n"
+        content = content + "quick-dev-edge#{delim}#{self.get_service_status('quick-dev-edge').strip}#{delim}http://selenium.localhost:7903?autoconnect=1&resize=scale&password=secret\n"
 
         system("echo '#{content}' | column -t -s'#{delim}'")
 

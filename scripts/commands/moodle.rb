@@ -35,10 +35,10 @@ class Moodle < Php
     def behat(container, qd)
        opt = ARGV[1]
        if opt === "init"
+          # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
+          system("docker exec -itd #{container} php -S #{container}:80 -t /app")
           # Initialise the behat environment.
           system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/behat/cli/init.php")
-          # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
-          system("docker exec -itd #{container} php -S internal:80 -t /app")
        elsif opt === "help"
           puts "Currently only supports chrome/headlesschrome profiles. You need to specify a profile or it will default to firefox."
           puts "Example: qd behat --profile=\"headlesschrome\" --tags=\"mod_forum\""
