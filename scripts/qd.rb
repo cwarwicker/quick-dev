@@ -628,7 +628,6 @@ class QuickDev
         content = content + "quick-dev-selenium-hub#{delim}#{self.get_service_status('quick-dev-selenium-hub').strip}#{delim}http://selenium.localhost:4444\n"
         content = content + "quick-dev-chrome#{delim}#{self.get_service_status('quick-dev-chrome').strip}#{delim}http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret\n"
         content = content + "quick-dev-firefox#{delim}#{self.get_service_status('quick-dev-firefox').strip}#{delim}http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret\n"
-        content = content + "quick-dev-edge#{delim}#{self.get_service_status('quick-dev-edge').strip}#{delim}http://selenium.localhost:7903?autoconnect=1&resize=scale&password=secret\n"
 
         system("echo '#{content}' | column -t -s'#{delim}'")
 

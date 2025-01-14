@@ -13,17 +13,9 @@ $headlessfirefox = $CFG->behat_profiles['headlessfirefox'];
 $firefox['wd_host'] = $this->getConfig('seleniumHubUrl');
 $headlessfirefox['wd_host'] = $this->getConfig('seleniumHubUrl');
 
-// Edge
-$edge = $CFG->behat_profiles['edge'];
-$headlessedge = $CFG->behat_profiles['headlessedge'];
-$edge['wd_host'] = $this->getConfig('seleniumHubUrl');
-$headlessedge['wd_host'] = $this->getConfig('seleniumHubUrl');
-
 return [
     'chrome' => $chrome,
     'headlesschrome' => $headlesschrome,
     'firefox' => $firefox,
     'headlessfirefox' => $headlessfirefox,
-    'edge' => $edge,
-    'headlessedge' => $headlessedge,
 ];

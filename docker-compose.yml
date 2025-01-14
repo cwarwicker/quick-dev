@@ -68,20 +68,6 @@ services:
         - "7902:7900"
         networks:
         - quick-dev-network
-    edge:
-        container_name: quick-dev-edge
-        image: selenium/node-edge:latest
-        shm_size: 2g
-        depends_on:
-        - selenium-hub
-        environment:
-        - SE_EVENT_BUS_HOST=quick-dev-selenium-hub
-        - SE_EVENT_BUS_PUBLISH_PORT=4442
-        - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-        ports:
-        - "7903:7900"
-        networks:
-        - quick-dev-network
 
 networks:
     quick-dev-network:
