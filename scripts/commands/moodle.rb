@@ -44,6 +44,11 @@ class Moodle < Php
           puts "Example: qd behat --profile=\"headlesschrome\" --tags=\"mod_forum\""
        else
           opts = ARGV[1..-1].join(' ')
+
+          # Add default profile if we won't specify one.
+          if not opts.include?('--profile')
+             opts = opts + ' --profile="chrome"'
+          end
           system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/behat/cli/run.php #{opts}")
        end
     end
