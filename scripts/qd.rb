@@ -88,14 +88,14 @@ class QuickDev
         OptionParser.new do |opts|
             opts.banner = "Usage: qd dashboard [options]"
             opts.on('-s', '--stop', 'Stop the dashboard') { options[:stop] = 'stop' }
-            opts.on('-d', '--detatch', 'Do not open the web browser when the dashboard starts') { options[:detatch] = true }
+            opts.on('-d', '--detach', 'Do not open the web browser when the dashboard starts') { options[:detach] = true }
         end.parse!
 
         if options[:stop] === "stop"
             system("pid=$(lsof -i :4567 | grep ruby | awk '{print $2}'); kill $pid;")
         else
             system("ruby #{QUICK_DEV_PATH}/core/server.rb > /dev/null 2>&1 &")
-            if options[:detatch].nil?
+            if options[:detach].nil?
                 self.open("http://127.0.0.1:4567/")
             end
         end
@@ -126,11 +126,10 @@ class QuickDev
                             [-a|--all] Includes the core quick-dev system containers
             destroy         Stops and deletes the project containers
                             [-a|--all] Includes the core quick-dev system containers
+            remove          Completely remove the project from quick-dev
             connect         Opens terminal connection to a project container (default: web)
                             [name] Specific container to connect to
-            remove          Completely remove the project from quick-dev
             services        Lists all running services in the project and their endpoints
-                            [-a|--all] Includes the core quick-dev services
             dashboard       Starts the Quick-Dev dashboard and opens it in your web browser
                             [-s|--stop] Stop the dashboard if it is running
             backup          Backup the application database

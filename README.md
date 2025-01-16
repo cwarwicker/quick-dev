@@ -20,6 +20,10 @@
 
 A docker-based development environment aimed at letting you quickly and easily spin-up dev environments for different project types, with minimal fuss and learning curve.
 
+<div align="center">
+    <img src="dashboard.png" style="height:250px;">
+</div>
+
 ## Table of Contents
 
 * [Requirements](#requirements)
@@ -30,13 +34,11 @@ A docker-based development environment aimed at letting you quickly and easily s
 
 
 
-
-
 ## Requirements
-`ruby 3.0.2+` - `sudo apt install ruby-full`
+- `linux` - Quick-Dev is not supported on windows or mac
+- `ruby 3.0.2+` - `sudo apt install ruby-full`
 
 ## Installation
-
 
 Clone the git repo and enter the directory
 
@@ -84,8 +86,6 @@ qd version
 You should see output like:
 
     Quick-Dev 1.0
-    Made by Conn Warwicker
-    For any issues or feature requests, see: https://github.com/cwarwicker/quick-dev)
 
 ## Adding a new project
 
@@ -110,12 +110,15 @@ This will bring up a series of menus to choose the project type, image, etc... a
 ### Project Type
 Currently Quick-Dev supports the following project types:
 
+- PHP (General)
 - Laravel
 - Moodle
-- PHP (General)
+- Totara
+- Python
+- Django
 - Other
 
-You can still use Quick-Dev with any type of project you like, it's just that project-specific configuration and commands have been added for the supported list.
+You can still use Quick-Dev with any type of project you like, it's just that project-specific configuration and commands have been added for the supported list. If your project type is not in the list, just choose `Other` and custom build it.
 
 ### Images
 You can choose from the pre-built images for the supported project types (See: `.docker/images/` if you want to see what they contain). Or you can choose `custom` and just type in any docker image to pull.
@@ -144,41 +147,48 @@ And for each supported database engine, you can choose from any of their LTS ver
 
 Again, you can also choose `custom` and put in any docker image you want to pull for a different caching engine.
 
+### Hooks
+
+You also have the option of adding hooks to any of the services in your project. These are scripts which are called at certain stages of the application lifecycle. Some pre-configured project types come with default hooks, but you can override them if you want to. Simply enter the path to the script to be run at the required stage.
+
+**Available hooks**
+- `pre-up` - This is a script run on the HOST machine, before the container is started (using `qd up`)
+- `post-up` - This is a script run on the CONTAINER, after the container is started (using `qd up`)
+- `pre-stop` - This is a script run on the CONTAINER, just before the container is stopped (using `qd stop`)
+- `post-stop` - This is a script run on the HOST, just after the container is stopped (using `qd stop`)
+
+**Example**
+A good example of this is the default hook in the `moodle` project type, attached to the `application` container:
+
+- `post_up: bash /mnt/post_up.sh`
+
+This means that after the application container starts, the script mounted on the container at `/mnt/post_up.sh` is run on that container, which configures some bits for behat testing to work.
+
+### Running the project
 
 Once you have finished with the config, you should find a `cfg.yaml` file in your project directory.
 
-Next, you can simply start the project by running:
+Now, you can start the project by running:
 
 ```bash
 qd up
 ```
 
-This will create the `docker-compose.yml` file based on your config info, and bring up all the containers.
+This will create the `docker-compose.yml` file based on your config info, and bring up all the containers, and run any hooks.
+
+
 ## Commands
 
-`qd help` - Displays the help information
+Run the `qd help` command to see a list of all available commands.
 
-`qd version` - Displays the verison of Quick-Dev you are running.
-
-`qd config` - Runs the project configuration wizard
-
-`qd up [-r|--rebuild]` - Starts the project containers (and core Quick-Dev containers). The `-r` or `--rebuild` flag will force a re-build instead of using the cached images.
-
-`qd stop [-a|--all]` - Stops the project containers. The `-a` or `--all` flag will also stop the core Quick-Dev containers.
-
-`qd destroy [-a|--all]` - Stops and deletes the project containers. The `-a` or `--all` flag will also stop and delete the core Quick-Dev containers.
-
-`qd remove` - Stops and deletes the project containers, removes any project-specific files elsewhere, and finally deletes the whole project directory.
-
-`qd connect [container]` - Connects to a docker container and runs a `bash` terminal. By default this will be your main application container. The `container` argument lets you specify any container name to try and connect to.
-
-`qd services [-a|--all]` - Lists all your project services, their statuses and any URLs. The `-a` or `--all` flag also lists the core Quick-Dev services.
-
-`qd cmd [command]` - Runs any specified command on the application container. The `command` flag contains the command you want to run. For example `qd cmd echo 'Hello'` will connec to the application container and run the command `echo 'Hello'`. So this can be used to run essentially anything you want to on the application container.
 
 ### Project-Specific Commands
 
-These are pre-defined commands you can run without having to prefix with `cmd`.
+These are pre-defined commands which are specific to certain project types. Project types inherit from parents, so for example, any commands specific to `php` projects, can also be used by php-related projects, such as `laravel` or `moodle`.
+
+**PHP**
+
+`qd install_debug` - Install debugging services to be used by Buggregator service.
 
 **Laravel**
 
@@ -192,14 +202,35 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
 
 `qd purge` - Runs the purge caches script.
 
+`qd makecourse [size [name]` - Runs the make test course script and makes a course of the given size and name.
+
+`qd phpunit init` - Initialises phpunit for the site (must be run before any phpunit commands).
+
+`qd phpunit [command]` - Runs the specified phpunit tests
+
+`qd behat init` - Initialises behat for the site (must be run before any behat commands).
+
+`qd behat [command]` - Runs the specified behat tests (Default profile: chrome)
+
+**Python**
+
+`qd python [command]` - Runs the specified python command on the application container.
+
+**Django**
+
+`qd dj [command]` - Runs the specifiec django-admin command on the application container.
+
+`qd runserver` - Starts the django server (manage.py) on port :8000.
+
+
 **All**
 
 `qd composer [command]` - Run the specified composer command on the application container.
 
+`qd npm [command]` - Run the specified npm command on the application container.
+
 
 ## Roadmap
-
-- Add pre-set project configurations
 
 - Add support for more project types
 
@@ -208,8 +239,7 @@ These are pre-defined commands you can run without having to prefix with `cmd`.
 
 - **Why did a git patch fail to apply when I created a `moodle` project?**
 
-    Moodle currently doesn't support the web server Quick-Dev uses (Caddy), though there is an opten tracker item for it: https://tracker.moodle.org/browse/MDL-83391
-    So we have to apply a patch to the setuplib.php to let it work. If this fails or conflicts, you'll need to double check your setuplib.php to make sure it's got the patch in it.
+    Moodle prior to 5.0 doesn't support the web server Quick-Dev uses (Caddy), so we have to apply a patch to the setuplib.php to let it work. If this fails or conflicts, you'll need to double check your setuplib.php to make sure it's got the patch in it.
     See: `.docker/templates/moodle/01_caddy.patch`
 
 - **I created a Moodle or Totara project but it errors on "Caddy is not available"**
