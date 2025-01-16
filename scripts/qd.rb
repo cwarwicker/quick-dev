@@ -476,7 +476,16 @@ class QuickDev
         end
 
         # Hooks.
-        any_hooks = self.prompt.multi_select("Do you want to add hooks to any of your services?") do |menu|
+        # Do we have any default hooks for the application type?
+        services['apps'].each do |obj|
+            if obj['name'] == data[:app][:type] and obj.key?('hooks')
+                obj['hooks'].each do |type, script|
+                    data[:app][:hooks] = {type => script}
+                end
+            end
+        end
+
+        any_hooks = self.prompt.multi_select("Do you want to add custom hooks to any of your services? (This will override any preset hooks for the application type)") do |menu|
             menu.choice :Application, 'app'
 
             if other_services.include?('db')
@@ -488,9 +497,9 @@ class QuickDev
             end
         end
 
-        hooks = {}
         if any_hooks
 
+            hooks = {}
             any_hooks.each do |srv|
 
                 # Select the hook types they want.
