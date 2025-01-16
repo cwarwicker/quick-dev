@@ -686,7 +686,6 @@ class QuickDev
 
         end
 
-        p services
         return services
 
     end
@@ -854,7 +853,7 @@ class QuickDev
         self.execute_hooks('post_up')
 
         self.say("\n")
-        self.run_services(true)
+        self.run_services()
     
     end
 
