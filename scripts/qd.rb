@@ -72,11 +72,34 @@ class QuickDev
                 self.run_backup()
             when 'restore'
                 self.run_restore()
+            when 'dashboard'
+                self.run_dashboard()
             else
                 self.run_cmd()
 
         end
     
+    end
+
+    def run_dashboard
+
+        # Define additional arguments which can be passed to the command.
+        options = {}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd dashboard [options]"
+            opts.on('-s', '--stop', 'Stop the dashboard') { options[:stop] = 'stop' }
+            opts.on('-d', '--detatch', 'Do not open the web browser when the dashboard starts') { options[:detatch] = true }
+        end.parse!
+
+        if options[:stop] === "stop"
+            system("pid=$(lsof -i :4567 | grep ruby | awk '{print $2}'); kill $pid;")
+        else
+            system("ruby #{QUICK_DEV_PATH}/core/server.rb > /dev/null 2>&1 &")
+            if options[:detatch].nil?
+                self.open("http://127.0.0.1:4567/")
+            end
+        end
+
     end
 
     # Check the version of Quick-Dev you are running.
@@ -108,6 +131,8 @@ class QuickDev
             remove          Completely remove the project from quick-dev
             services        Lists all running services in the project and their endpoints
                             [-a|--all] Includes the core quick-dev services
+            dashboard       Starts the Quick-Dev dashboard and opens it in your web browser
+                            [-s|--stop] Stop the dashboard if it is running
             backup          Backup the application database
                             [-u|--user] The database user with backup permissions (defualt: user)
                             [-p|--password] The database user's password (default: password)
@@ -137,6 +162,25 @@ class QuickDev
     # @return [Boolean]
     def self.is_in_app_dir()
         return Dir.pwd.start_with?(QUICK_DEV_PATH + '/apps/')
+    end
+
+    # Open site in web browser
+    def open(url)
+
+        if RUBY_PLATFORM =~ /linux/
+            # Check if running under WSL
+            if File.exist?('/proc/version') && File.read('/proc/version').downcase.include?('microsoft')
+              # Running on WSL
+              system("wslview '#{url}'") || system("powershell.exe Start-Process '#{url}'")
+            else
+              # Native Linux
+              system("xdg-open '#{url}'") || puts("Please open this URL manually: #{url}")
+          end
+        else
+            # Fallback for unsupported platforms
+            puts "Only linux is supported. Please open this URL manually: #{url}"
+        end
+
     end
 
     # Backup the attached database
@@ -586,57 +630,89 @@ class QuickDev
     # @param [String] container
     # @return [String]
     def get_service_status(container)
-        return `docker inspect -f '{{.State.Status}}' #{container}`
+        status = `docker inspect -f '{{.State.Running}}' #{container}`
+        return (status.include?('true')) ? 'active' : 'inactive'
     end
 
-    # Run the services command to view services and their status/info
-    # @param [Boolean] all (Default: False) - Show core services as well
-    def run_services(all = false)
+    def get_service_info(type)
 
         @project = Project.load()
 
-        # Load the docker-compose file (we use this instead of cfg.yml incase of custom changes).
+        services = []
+
+        if type === 'project'
+
+            # Loop through the project services.
+            self.project.config.each do |name, service|
+
+                get_service = -> (name, service) {
+
+                    url = ''
+                    status = self.get_service_status(self.project.name + '-' + "#{name}").strip
+
+                    # Not sure at the moment how else to know which ones will have URLs.
+                    if "#{name}" == 'app'
+                        url = self.project.get_url()
+                    end
+
+                    return {
+                        :name => "#{self.project.name}-#{name}",
+                        :type => service[:type],
+                        :status => status,
+                        :url => url,
+                    }
+
+                }
+
+                if service.is_a?(Array)
+                    service.each do |s|
+                        services.push(get_service.call(s[:type].to_sym, s))
+                    end
+                else
+                    services.push(get_service.call(name, service))
+                end
+
+            end
+
+        elsif type === 'core'
+
+            # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
+            services.push({:name => 'quick-dev-adminer', :type => 'core', :status => self.get_service_status('quick-dev-adminer').strip, :url => "http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main"})
+            services.push({:name => 'quick-dev-buggregator', :type => 'core', :status => self.get_service_status('quick-dev-buggregator').strip, :url => "http://buggregator.localhost:8000"})
+            services.push({:name => 'quick-dev-caddy', :type => 'core', :status => self.get_service_status('quick-dev-caddy').strip, :url => nil})
+            services.push({:name => 'quick-dev-selenium-hub', :type => 'core', :status => self.get_service_status('quick-dev-selenium-hub').strip, :url => "http://selenium.localhost:4444"})
+            services.push({:name => 'quick-dev-chrome', :type => 'core', :status => self.get_service_status('quick-dev-chrome').strip, :url => "http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret"})
+            services.push({:name => 'quick-dev-firefox', :type => 'core', :status => self.get_service_status('quick-dev-firefox').strip, :url => "http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret"})
+
+        end
+
+        p services
+        return services
+
+    end
+
+    # Run the services command to view services and their status/info
+    def run_services()
+
+        @project = Project.load()
+
         delim = "{@}"
         content = "PROJECT SERVICES (#{self.project.name})\n\n"
         content = content + "NAME#{delim}TYPE#{delim}STATUS#{delim}URL\n"
 
-        # Loop through the project services.
-        self.project.config.each do |name, service|
-
-            display_service = -> (name, service) {
-
-                url = ''
-                status = self.get_service_status(self.project.name + '-' + "#{name}").strip
-
-                # Not sure at the moment how else to know which ones will have URLs.
-                if "#{name}" == 'app'
-                    url = self.project.get_url()
-                end
-
-                content = content + "#{self.project.name}-#{name}#{delim}#{service[:type]}#{delim}#{status}#{delim}#{url}\n"
-            }
-
-            if service.is_a?(Array)
-                service.each do |s|
-                    display_service.call(s[:type].to_sym, s)
-                end
-            else
-                display_service.call(name, service)
-            end
-
+        info = self.get_service_info('project')
+        info.each do |i|
+            content = content + "#{i[:name]}#{delim}#{i[:type]}#{delim}#{i[:status]}#{delim}#{i[:url]}\n"
         end
 
         content = content + "\n----------\n"
         content = content + "CORE SERVICES\n\n"
         content = content + "NAME#{delim}STATUS#{delim}URL\n"
 
-        # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
-        content = content + "quick-dev-adminer#{delim}#{self.get_service_status('quick-dev-adminer').strip}#{delim}http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main\n"
-        content = content + "quick-dev-buggregator#{delim}#{self.get_service_status('quick-dev-buggregator').strip}#{delim}http://buggregator.localhost:8000\n"
-        content = content + "quick-dev-caddy#{delim}#{self.get_service_status('quick-dev-caddy').strip}#{delim}-\n"
-        content = content + "quick-dev-selenium-hub#{delim}#{self.get_service_status('quick-dev-selenium-hub').strip}#{delim}http://selenium.localhost:4444\n"
-        content = content + "quick-dev-chrome#{delim}#{self.get_service_status('quick-dev-chrome').strip}#{delim}http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret\n"
-        content = content + "quick-dev-firefox#{delim}#{self.get_service_status('quick-dev-firefox').strip}#{delim}http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret\n"
+        info = self.get_service_info('core')
+        info.each do |i|
+            content = content + "#{i[:name]}#{delim}#{i[:type]}#{delim}#{i[:status]}#{delim}#{i[:url]}\n"
+        end
 
         system("echo '#{content}' | column -t -s'#{delim}'")
 
