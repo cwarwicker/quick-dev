@@ -594,3 +594,6 @@ body {
 .gridView .cell-label {
   opacity: 0.6;
 }
+h3 {
+  margin-left: 15px;
+}
