@@ -2,8 +2,9 @@ require 'sinatra'
 require_relative '../scripts/qd.rb'
 
 qd = QuickDev.new()
+apps = QuickDev.get_apps()
 
 get '/' do
-  @services = qd.get_service_info('project') + qd.get_service_info('core')
+  @apps = apps
   erb :index
 end

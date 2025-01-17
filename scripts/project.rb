@@ -23,6 +23,24 @@ class Project
 
     end
 
+    def self.get(name, dir)
+
+      project = Project.new
+      project.name = name
+      project.dir = dir
+
+      # Load the project config.
+      config_file = project.dir + '/cfg.yaml'
+      if File.exist?(config_file)
+          project.config = YAML.load_file(config_file)
+      else
+        project.config = nil
+      end
+
+      return project
+
+    end
+
     def self.load()
 
         project = Project.create()

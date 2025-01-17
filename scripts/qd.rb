@@ -628,34 +628,36 @@ class QuickDev
     # Get the status (running/stopped) of a docker container
     # @param [String] container
     # @return [String]
-    def get_service_status(container)
-        status = `docker inspect -f '{{.State.Running}}' #{container}`
+    def self.get_service_status(container)
+        status = `docker inspect -f '{{.State.Running}}' #{container} 2>/dev/null`
         return (status.include?('true')) ? 'active' : 'inactive'
     end
 
-    def get_service_info(type)
+    def self.get_service_info(type, project = nil)
 
-        @project = Project.load()
+        if project.nil?
+            project = Project.load()
+        end
 
         services = []
 
-        if type === 'project'
+        if type === 'project' and !project.config.nil?
 
             # Loop through the project services.
-            self.project.config.each do |name, service|
+            project.config.each do |name, service|
 
                 get_service = -> (name, service) {
 
                     url = ''
-                    status = self.get_service_status(self.project.name + '-' + "#{name}").strip
+                    status = QuickDev.get_service_status(project.name + '-' + "#{name}").strip
 
                     # Not sure at the moment how else to know which ones will have URLs.
                     if "#{name}" == 'app'
-                        url = self.project.get_url()
+                        url = project.get_url()
                     end
 
                     return {
-                        :name => "#{self.project.name}-#{name}",
+                        :name => "#{project.name}-#{name}",
                         :type => service[:type],
                         :status => status,
                         :url => url,
@@ -676,12 +678,12 @@ class QuickDev
         elsif type === 'core'
 
             # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
-            services.push({:name => 'quick-dev-adminer', :type => 'core', :status => self.get_service_status('quick-dev-adminer').strip, :url => "http://adminer.localhost:8080?server=#{self.project.name}-db&username=user&db=main"})
-            services.push({:name => 'quick-dev-buggregator', :type => 'core', :status => self.get_service_status('quick-dev-buggregator').strip, :url => "http://buggregator.localhost:8000"})
-            services.push({:name => 'quick-dev-caddy', :type => 'core', :status => self.get_service_status('quick-dev-caddy').strip, :url => nil})
-            services.push({:name => 'quick-dev-selenium-hub', :type => 'core', :status => self.get_service_status('quick-dev-selenium-hub').strip, :url => "http://selenium.localhost:4444"})
-            services.push({:name => 'quick-dev-chrome', :type => 'core', :status => self.get_service_status('quick-dev-chrome').strip, :url => "http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret"})
-            services.push({:name => 'quick-dev-firefox', :type => 'core', :status => self.get_service_status('quick-dev-firefox').strip, :url => "http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret"})
+            services.push({:name => 'quick-dev-adminer', :type => 'core', :status => QuickDev.get_service_status('quick-dev-adminer').strip, :url => "http://adminer.localhost:8080?server=#{project.name}-db&username=user&db=main"})
+            services.push({:name => 'quick-dev-buggregator', :type => 'core', :status => QuickDev.get_service_status('quick-dev-buggregator').strip, :url => "http://buggregator.localhost:8000"})
+            services.push({:name => 'quick-dev-caddy', :type => 'core', :status => QuickDev.get_service_status('quick-dev-caddy').strip, :url => nil})
+            services.push({:name => 'quick-dev-selenium-hub', :type => 'core', :status => QuickDev.get_service_status('quick-dev-selenium-hub').strip, :url => "http://selenium.localhost:4444"})
+            services.push({:name => 'quick-dev-chrome', :type => 'core', :status => QuickDev.get_service_status('quick-dev-chrome').strip, :url => "http://selenium.localhost:7901?autoconnect=1&resize=scale&password=secret"})
+            services.push({:name => 'quick-dev-firefox', :type => 'core', :status => QuickDev.get_service_status('quick-dev-firefox').strip, :url => "http://selenium.localhost:7902?autoconnect=1&resize=scale&password=secret"})
 
         end
 
@@ -698,7 +700,7 @@ class QuickDev
         content = "PROJECT SERVICES (#{self.project.name})\n\n"
         content = content + "NAME#{delim}TYPE#{delim}STATUS#{delim}URL\n"
 
-        info = self.get_service_info('project')
+        info = QuickDev.get_service_info('project')
         info.each do |i|
             content = content + "#{i[:name]}#{delim}#{i[:type]}#{delim}#{i[:status]}#{delim}#{i[:url]}\n"
         end
@@ -707,7 +709,7 @@ class QuickDev
         content = content + "CORE SERVICES\n\n"
         content = content + "NAME#{delim}STATUS#{delim}URL\n"
 
-        info = self.get_service_info('core')
+        info = QuickDev.get_service_info('core')
         info.each do |i|
             content = content + "#{i[:name]}#{delim}#{i[:type]}#{delim}#{i[:status]}#{delim}#{i[:url]}\n"
         end
@@ -994,6 +996,39 @@ class QuickDev
             self.say("#{file_name} ==> #{new_file_name}")
 
         end
+
+    end
+
+    def self.get_apps()
+
+        apps = []
+
+        # Find any projects we have configured in the apps directory.
+        Dir.glob(QUICK_DEV_PATH + '/apps/*').each do | p |
+            if File.directory?(p)
+
+                app = {}
+
+                # Get the project name from the path.
+                name = Pathname.new(p).basename.to_s
+                app[:name] = name
+
+                # Load the cfg.yaml file if it exists.
+                project = Project.get(name, p)
+                app[:config] = project.config
+
+                # Check the status of the project by checking its main application container.
+                app[:status] = QuickDev.get_service_status(name + '-app')
+
+                # Get the services for this application.
+                app[:services] = QuickDev.get_service_info('project', project) + QuickDev.get_service_info('core', project)
+
+                apps.push(app)
+
+            end
+        end
+
+        return apps
 
     end
 
