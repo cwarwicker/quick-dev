@@ -677,8 +677,14 @@ class QuickDev
 
         elsif type === 'core'
 
+            if !project.config.nil? and !project.config[:db].nil?
+                adminer_url = "http://adminer.localhost:8080?server=#{project.name}-db&username=user&db=main"
+            else
+                adminer_url = nil
+            end
+
             # These can be hard-coded as core services will be hard defined in the docker-compose anyway.
-            services.push({:name => 'quick-dev-adminer', :type => 'core', :status => QuickDev.get_service_status('quick-dev-adminer').strip, :url => "http://adminer.localhost:8080?server=#{project.name}-db&username=user&db=main"})
+            services.push({:name => 'quick-dev-adminer', :type => 'core', :status => QuickDev.get_service_status('quick-dev-adminer').strip, :url => adminer_url})
             services.push({:name => 'quick-dev-buggregator', :type => 'core', :status => QuickDev.get_service_status('quick-dev-buggregator').strip, :url => "http://buggregator.localhost:8000"})
             services.push({:name => 'quick-dev-caddy', :type => 'core', :status => QuickDev.get_service_status('quick-dev-caddy').strip, :url => nil})
             services.push({:name => 'quick-dev-selenium-hub', :type => 'core', :status => QuickDev.get_service_status('quick-dev-selenium-hub').strip, :url => "http://selenium.localhost:4444"})
