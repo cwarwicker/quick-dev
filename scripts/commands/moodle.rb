@@ -13,7 +13,7 @@ class Moodle < Php
     end
 
     def upgrade(container, qd)
-       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/cli/upgrade.php --non-interactive")
+       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/cli/upgrade.php --non-interactive --allow-unstable")
     end
 
     def makecourse(container, qd)
