@@ -1029,6 +1029,14 @@ class QuickDev
                 # Get the services for this application.
                 app[:services] = QuickDev.get_service_info('project', project) + QuickDev.get_service_info('core', project)
 
+                # Get the git branch that is checked out.
+                branch = nil
+                head = p + "/.git/HEAD"
+                if File.exist?(head)
+                    branch = File.read(head).split("/").last
+                end
+                app[:branch] = branch
+
                 apps.push(app)
 
             end

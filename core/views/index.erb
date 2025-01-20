@@ -2,7 +2,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-  <title>Quick Dev</title>
+  <title>Quick Dev :: Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -33,12 +33,14 @@
         <div class="header">
           <div class="cell">Name</div>
           <div class="cell">Type</div>
+          <div class="cell">Branch</div>
           <div class="cell">Status</div>
         </div>
         <% @apps.each do |app| %>
           <div class="row">
             <div class="cell"><a href="#<%= app[:name] %>" id="application-link-<%= app[:name] %>" class="application-link" data-app="<%= app[:name] %>"><%= app[:name] %></a></div>
             <div class="cell"><%= (app[:config]) ? app[:config][:app][:type] : "-" %></div>
+            <div class="cell"><%= (app[:branch]) ? app[:branch] : "-" %></div>
             <div class="cell status-cell">
               <span class="cell-label">Status:</span>
               <span class="status <%= app[:status] %>"><%= app[:status] %></span>
