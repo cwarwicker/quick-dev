@@ -53,4 +53,9 @@ class Moodle < Php
        end
     end
 
+    def cron(container, qd)
+       opts = ARGV[1..-1].join(' ')
+       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/cli/cron.php #{opts}")
+    end
+
 end
