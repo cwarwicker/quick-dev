@@ -9,3 +9,5 @@ class QuickDev
         fclose($f);
     }
 }
+
+require_once 'vendor/autoload.php';
