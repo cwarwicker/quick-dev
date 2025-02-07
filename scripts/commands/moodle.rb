@@ -35,6 +35,8 @@ class Moodle < Php
     def behat(container, qd)
        opt = ARGV[1]
        if opt === "init"
+          # Clear out the behat data directory.
+          system("docker exec -itd #{container} rm -rf /var/www/behatdata")
           # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
           system("docker exec -itd #{container} php -S #{container}:80 -t /app")
           # Initialise the behat environment.
