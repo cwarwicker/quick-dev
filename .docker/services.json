@@ -27,7 +27,7 @@
     {
       "name": "totara",
       "lang": "php",
-      "image": "quick-dev:php:moodle",
+      "image": "quick-dev:php:totara",
       "args": [{"name": "PHP_VERSION", "default": 8.3}],
       "ports": []
     },

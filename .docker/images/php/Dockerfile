@@ -55,4 +55,9 @@ ADD ./moodle/cli.php.ini /usr/local/php/conf.d/custom-cli.ini
 # Clone the moodle-browser-config plugin for behat.
 RUN git clone https://github.com/andrewnicols/moodle-browser-config.git /var/www/moodle-browser-config
 
+############################## TOTARA STAGE ########################################
+
+ARG PHP_VERSION
+FROM moodle AS totara
+
 ############################## END ########################################

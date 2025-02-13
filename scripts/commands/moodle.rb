@@ -22,6 +22,12 @@ class Moodle < Php
        system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/generator/cli/maketestcourse.php --size=#{size} --shortname=#{name} --fullname=#{name}")
     end
 
+    def makequiz(container, qd)
+       course = ARGV[1]
+       questions = ARGV[2]
+       system("docker exec -it #{container} php /mnt/bulk_create_questions.php --course=#{course} --questions=#{questions}")
+    end
+
     def phpunit(container, qd)
        opt = ARGV[1]
        if opt === "init"
