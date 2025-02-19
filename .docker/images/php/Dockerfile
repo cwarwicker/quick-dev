@@ -24,7 +24,7 @@ COPY --from=composer:2.7.7 /usr/bin/composer /usr/local/bin/composer
 
 # Install node version.
 ENV NVM_DIR=/usr/local/nvm
-ENV NODE_VERSION=v20.17.0
+ENV NODE_VERSION=v22.11
 ENV NODE_PATH=$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules
 ENV PATH=$NVM_DIR/versions/node/$NODE_VERSION/bin:$PATH
 RUN mkdir -p $NVM_DIR && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
