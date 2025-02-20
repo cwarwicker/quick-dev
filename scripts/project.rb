@@ -98,7 +98,10 @@ class Project
           'networks': [
             'quick-dev-network'
           ],
-          'stdin_open': true
+          'stdin_open': true,
+          'extra_hosts': [
+            'host.docker.internal:host-gateway'
+          ],
         }
 
         if self.volumes
@@ -180,7 +183,7 @@ class Project
             # Read service-specific config to load in.
             service_path = QUICK_DEV_PATH + '/.docker/services/' + other[:type] + '.service'
             if File.exist?(service_path)
-              service_config = JSON.parse(File.read(service_path), {symbolize_names: true}) 
+              service_config = JSON.parse(File.read(service_path), {symbolize_names: true})
               data['services'][other[:type]] = data['services'][other[:type]].merge(service_config)
             end
 
