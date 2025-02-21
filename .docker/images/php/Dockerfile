@@ -17,7 +17,7 @@ RUN docker-php-ext-install curl dom gd intl mbstring mysqli pdo_mysql pgsql pdo_
 
 # Redis seems to need to be done via pecl instead of ext install.
 RUN pecl install redis && docker-php-ext-enable redis
-RUN pecl install excimer && docker-php-ext-enable excimer
+RUN pecl install xhprof && docker-php-ext-enable xhprof
 
 # Install Composer.
 COPY --from=composer:2.7.7 /usr/bin/composer /usr/local/bin/composer

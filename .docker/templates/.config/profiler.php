@@ -28,3 +28,19 @@ class Profiler
     }
 
 }
+
+/*
+
+=========================== EXAMPLE ===========================
+
+// Start the profiler at the top and and it at the bottom.
+$profiler = \Debug\Container::get('Debug\Profiler')->get();
+$profiler->start();
+
+// Your code here.
+sleep(5);
+
+$profiler->end();
+
+
+*/
