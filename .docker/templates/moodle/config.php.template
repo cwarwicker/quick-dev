@@ -18,7 +18,7 @@ $CFG->dboptions = array(
     'dbcollation' => 'utf8mb4_unicode_ci'
 );
 
-$CFG->wwwroot   = '%project.url%';
+$CFG->wwwroot   = (isset($_SERVER['HTTP_HOST'])) ? 'https://' . $_SERVER['HTTP_HOST'] : '%project.url%';
 $CFG->dataroot  = '/var/www/data';
 $CFG->directorypermissions = 02777;
 
@@ -44,6 +44,11 @@ $CFG->phpunit_profilingenabled = false;
 $CFG->behat_wwwroot = 'http://%project.name%-app';
 $CFG->behat_prefix = 'behat_';
 $CFG->behat_dataroot = '/var/www/behatdata';
+
+// If we are viewing the behat site, change the db prefix.
+if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'behat.') === 0) {
+    $CFG->prefix = 'behat_';
+}
 
 if (file_exists('/var/www/moodle-browser-config/init.php')) {
     require_once '/var/www/moodle-browser-config/init.php';

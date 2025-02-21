@@ -1,4 +1,4 @@
-%project.uri% {
+%project.uri%, behat.%project.uri% {
 
     root * /srv/www/%project.name%
     file_server
