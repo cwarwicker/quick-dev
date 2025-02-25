@@ -47,7 +47,8 @@ $CFG->behat_dataroot = '/var/www/behatdata';
 
 // If we are viewing the behat site, change the db prefix.
 if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'behat.') === 0) {
-    $CFG->prefix = 'behat_';
+    $CFG->prefix = $CFG->behat_prefix;
+    $CFG->dataroot = $CFG->behat_dataroot;
 }
 
 if (file_exists('/var/www/moodle-browser-config/init.php')) {

@@ -10,4 +10,8 @@ class QuickDev
     }
 }
 
-require_once 'vendor/autoload.php';
+if (file_exists('.debug/autoload.php')) {
+    require_once '.debug/autoload.php';
+} else {
+    require_once 'vendor/autoload.php';
+}
