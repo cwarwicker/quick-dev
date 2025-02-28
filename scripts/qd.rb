@@ -930,7 +930,7 @@ class QuickDev
         end
 
         # Remove project containers and images.
-        system("docker compose down --rmi")
+        system("docker compose down --rmi all")
 
     end
 
