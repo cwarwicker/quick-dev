@@ -1,5 +1,10 @@
 class Php
 
+    def composer(container, qd)
+        cmd = ARGV[1..-1].join(' ')
+        system("docker exec -it #{container} composer #{cmd}")
+    end
+
     def install_debug(container, qd)
 
         # Install debugging services and configuration to work with buggregator.
@@ -11,7 +16,7 @@ class Php
         Dir.glob(QUICK_DEV_PATH + '/.docker/templates/.config/*.php').each do |file_name|
             qd.copy_template(file_name, qd.project.dir + '/.debug/')
         end
-        
+
     end
 
 end
