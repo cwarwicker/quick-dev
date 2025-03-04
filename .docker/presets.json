@@ -11,10 +11,10 @@
         }
       },
       "db": {
-        "image": "mariadb:11.5.2"
+        "image": "mariadb:latest"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:latest"
       }
     },
     "4.4+": {
@@ -31,10 +31,10 @@
         }
       },
       "db": {
-        "image": "mariadb:11.5.2"
+        "image": "mariadb:11.7.2"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:7.4.2"
       }
     },
     "4.2+": {
@@ -54,7 +54,7 @@
         "image": "mariadb:11.5.2"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:7.4.2"
       }
     },
     "4.1+": {
@@ -74,7 +74,7 @@
         "image": "mariadb:11.5.2"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:7.4.2"
       }
     }
   },
@@ -90,10 +90,10 @@
         ]
       },
       "db": {
-        "image": "mariadb:10.6"
+        "image": "mariadb:11.7.2"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:7.4.2"
       }
     }
   },
@@ -106,10 +106,10 @@
         }
       },
       "db": {
-        "image": "mariadb:11.5.2"
+        "image": "mariadb:latest"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:latest"
       }
     }
   },
@@ -128,10 +128,10 @@
         }
       },
       "db": {
-        "image": "mariadb:11.5.2"
+        "image": "mariadb:latest"
       },
       "cache": {
-        "image": "redis:7.4.1"
+        "image": "redis:latest"
       }
     }
   }
