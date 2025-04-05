@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :volumes, :url, :uri, :db, :dir, :working_dir, :requires
+    attr_accessor :services, :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :volumes, :url, :uri, :db, :dir, :working_dir, :requires
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -52,16 +52,24 @@ class Project
         end
 
         project.config = YAML.load_file(config_file)
+        project.services = {}
 
-        project.type = project.config[:app][:type]
-        project.image = project.config[:app][:image]
-        project.image_args = project.config[:app][:args]
-        project.ports = project.config[:app][:ports] if !project.config[:app][:ports].nil? and !project.config[:app][:ports].empty?
-        project.requires = project.config[:app][:requires]
-        project.hooks = project.config[:app][:hooks] if !project.config[:app][:hooks].nil? and !project.config[:app][:hooks].empty?
-        project.patches = project.config[:app][:patches] if !project.config[:app][:patches].nil? and !project.config[:app][:patches].empty?
-        project.volumes = project.config[:app][:volumes] if !project.config[:app][:volumes].nil? and !project.config[:app][:volumes].empty?
-        project.working_dir = '/app'
+        project.config[:services].each do |service, data|
+
+          project.services[service] = {}
+          project.services[service][:type] = data[:type]
+          project.services[service][:image] = data[:image]
+          project.services[service][:image_args] = data[:args]
+          project.services[service][:ports] = data[:ports] if !data[:ports].nil? and !data[:ports].empty?
+          project.services[service][:requires] = data[:requires] if !data[:requires].nil? and !data[:requires].empty?
+          project.services[service][:hooks] = data[:hooks] if !data[:hooks].nil? and !data[:hooks].empty?
+          project.services[service][:patches] = data[:patches] if !data[:patches].nil? and !data[:patches].empty?
+          project.services[service][:volumes] = data[:volumes] if !data[:volumes].nil? and !data[:volumes].empty?
+          project.services[service][:working_dir] = '/app'
+          project.services[service][:local_dir] = data[:local_dir]
+
+        end
+
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
         project.db = project.config[:db][:type] if !project.config[:db].nil?
@@ -90,48 +98,51 @@ class Project
 
         data = {}
         data['services'] = {}
-        data['services']['app'] = {
-          'container_name': self.name + '-app',
-          'volumes': [
-            './:' + self.working_dir
-          ],
-          'networks': [
-            'quick-dev-network'
-          ],
-          'stdin_open': true,
-          'extra_hosts': [
-            'host.docker.internal:host-gateway'
-          ],
-        }
 
-        if self.volumes
-            data['services']['app'][:volumes] = data['services']['app'][:volumes] + self.volumes
-        end
+        self.services.each do |name, service|
 
-        if self.ports
-            data['services']['app']['ports'] = self.ports;
-        end
-
-        # If we are using a quick-dev image, we need a build context.
-        if self.image.start_with?('quick-dev:')
-
-          img = self.image.delete_prefix('quick-dev:')
-          stage = img.split(':')[-1]
-          common = img.split(':')[0]
-
-          data['services']['app']['build'] = {
-            'context': QUICK_DEV_PATH + '/.docker/images/' + common,
-            'target': stage,
-            'args': self.image_args
+          data['services'][name] = {
+            'container_name': self.name + '-' + name,
+            'volumes': [
+              service[:local_dir] + ':' + service[:working_dir]
+            ],
+            'networks': [
+              'quick-dev-network'
+            ],
+            'stdin_open': true,
+            'extra_hosts': [
+              'host.docker.internal:host-gateway'
+            ],
           }
 
-          data['services']['app']['image'] = 'quick-dev:' + self.name + '-app'
+          if service[:volumes]
+              data['services'][name][:volumes] = data['services'][name][:volumes] + service[:volumes]
+          end
 
-        else
-          data['services']['app']['image'] = self.image
+          if self.ports
+              data['services'][name]['ports'] = service[:ports]
+          end
+
+          # If we are using a quick-dev image, we need a build context.
+          if service[:image].start_with?('quick-dev:')
+
+            img = service[:image].delete_prefix('quick-dev:')
+            stage = img.split(':')[-1]
+            common = img.split(':')[0]
+
+            data['services'][name]['build'] = {
+              'context': QUICK_DEV_PATH + '/.docker/images/' + common,
+              'target': stage,
+              'args': service[:image_args]
+            }
+
+            data['services'][name]['image'] = 'quick-dev:' + self.name + '-' + name
+
+          else
+            data['services'][name]['image'] = service[:image]
+          end
+
         end
-
-        # Other services.
 
         # Database.
         if self.config[:db]
@@ -165,29 +176,6 @@ class Project
           # Read service-specific config to load in.
           service_config = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services/' + self.config[:cache][:type] + '.service'), {symbolize_names: true})
           data['services']['cache'] = data['services']['cache'].merge(service_config)
-
-        end
-
-        # Other services.
-        if self.config[:other]
-
-          self.config[:other].each do |other|
-            data['services'][other[:type]] = {
-              'container_name': self.name + '-' + other[:type],
-              'image': other[:image],
-              'networks': [
-                'quick-dev-network'
-              ]
-            }
-
-            # Read service-specific config to load in.
-            service_path = QUICK_DEV_PATH + '/.docker/services/' + other[:type] + '.service'
-            if File.exist?(service_path)
-              service_config = JSON.parse(File.read(service_path), {symbolize_names: true})
-              data['services'][other[:type]] = data['services'][other[:type]].merge(service_config)
-            end
-
-          end
 
         end
 

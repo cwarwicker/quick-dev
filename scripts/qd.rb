@@ -25,16 +25,16 @@ class QuickDev
         if File.exist?(self.log)
             File.truncate(self.log, 0)
         end
-        
+
     end
-    
+
     # Write some text to the output and to the log file.
     # @param [String] text
     def say(text)
-       
+
         File.open(self.log, 'a') { |f| f.write "#{text}\n" }
         puts text
-    
+
     end
 
     # Run one of the built-in commands
@@ -78,7 +78,7 @@ class QuickDev
                 self.run_cmd()
 
         end
-    
+
     end
 
     def run_dashboard
@@ -111,7 +111,7 @@ class QuickDev
 
     # Display the help information
     def run_help()
-       
+
         puts <<-HELP
             Usage:          qd [command] [arguments]
 
@@ -139,10 +139,10 @@ class QuickDev
             <x>             Runs a project-specific command.
                             [command] The command to run. E.g. `artisan tinker` (laravel) or `purge` (moodle)
             cmd             Run any arbitrary command on the application console
-                            [command] The command to run. E.g. `echo 'Hello World'`                        
-            
+                            [command] The command to run. E.g. `echo 'Hello World'`
+
         HELP
-            
+
     end
 
     # Get an instance of a class, given its name
@@ -379,70 +379,125 @@ class QuickDev
 
         # Start building the config Hash to create the yaml file.
         data = {}
+        data[:services] = {}
 
-        # What type of application are we running?
-        data[:app] = {}
-        data[:app][:type] = self.prompt.select("Application // What type of application will you be running?") do |menu|
+        # No longer hard-coding services like "app". Now it asks how many you want and lets you name them.
+        reserved_names = ['db', 'cache']
+        num_services = self.prompt.ask("How many application services do you need?", convert: :int, default: 1)
+        my_services = []
 
-            services['apps'].each do |obj|
-                menu.choice obj['name'].capitalize, obj['name']
+        num_services.times do |i|
+            service_name = self.prompt.ask("Service [#{i + 1}] name (e.g. 'app', 'backend', etc...)", required: true, default: "app") do |p|
+                p.validate ->(input) { input =~ /^[a-z]+$/ and not my_services.include?(input) and not reserved_names.include?(input) }
+                p.messages[:valid?] = "Service name must be lowercase [a-z] only and not one of the reserved names: db, cache"
             end
-
+            my_services.push(service_name)
         end
 
-        # Next, do we want to use a preset image or define our own?
-        which_image = self.prompt.select("Application // Which image do you want to use?") do |menu|
 
-            menu.choice :custom
+        # Loop through the services.
+        my_services.each do |name|
 
-            i = 2
-            services['apps'].each do |obj|
-                if obj.key?('image')
-                    menu.choice obj['image'], obj['image']
-                    if obj['name'] == data[:app][:type]
-                        menu.default i
+            # What type of application are we running?
+            data[:services][name] = {}
+            data[:services][name][:type] = self.prompt.select("#{name} // What type of application will you be running?") do |menu|
+
+                services['apps'].each do |obj|
+                    menu.choice obj['name'].capitalize, obj['name']
+                end
+
+            end
+
+            # Next, do we want to use a preset image or define our own?
+            which_image = self.prompt.select("#{name} // Which image do you want to use?") do |menu|
+
+                menu.choice :custom
+
+                i = 2
+                services['apps'].each do |obj|
+                    if obj.key?('image')
+                        menu.choice obj['image'], obj['image']
+                        if obj['name'] == data[:services][name][:type]
+                            menu.default i
+                        end
+                        i += 1
                     end
-                    i += 1
                 end
+
             end
 
-        end
-
-        # If they asked for a custom image, let them input it.
-        if which_image === 'custom'
-            data[:app][:image] = self.prompt.ask("Please input the docker image to pull for this application: ")
-        else
-            data[:app][:image] = which_image
-            # Are there any image args we need to gather?
-            data[:app][:args] = {}
-            services['apps'].each do |obj|
-                if obj['name'] == data[:app][:type] and obj.key?('args')
-                    obj['args'].each do |arg|
-                        data[:app][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+            # If they asked for a custom image, let them input it.
+            if which_image === 'custom'
+                data[:services][name][:image] = self.prompt.ask("Please input the docker image to pull for this application: ")
+            else
+                data[:services][name][:image] = which_image
+                # Are there any image args we need to gather?
+                data[:services][name][:args] = {}
+                services['apps'].each do |obj|
+                    if obj['name'] == data[:services][name][:type] and obj.key?('args')
+                        obj['args'].each do |arg|
+                            data[:services][name][:args][arg['name']] = self.prompt.ask("Image argument (#{arg['name']}): ", default: arg['default'])
+                        end
                     end
                 end
             end
-        end
 
-        # What port(s) need to be mapped for this application?
-        default_ports = []
-        services['apps'].each do |obj|
-            if obj['name'] == data[:app][:type] and obj.key?('ports')
-                default_ports = obj['ports']
-            end
-        end
-
-        ports = self.prompt.ask("Which port(s) need to be mapped for this application? (host:container,host:container,...)", default: default_ports.join(","))
-        data[:app][:ports] = ports.split(',')
-
-        # Add any additional required services linked to this type. E.g. Caddy for most web-based app types.
-        services['apps'].each do |obj|
-            if obj['name'] == data[:app][:type] and obj.key?('requires')
-                data[:app][:requires] = []
-                obj['requires'].each do |requires|
-                    data[:app][:requires].push(requires)
+            # What port(s) need to be mapped for this application?
+            default_ports = []
+            services['apps'].each do |obj|
+                if obj['name'] == data[:services][name][:type] and obj.key?('ports')
+                    default_ports = obj['ports']
                 end
             end
+
+            ports = self.prompt.ask("#{name} // Which port(s) need to be mapped for this application? (host:container,host:container,...)", default: default_ports.join(","))
+            data[:services][name][:ports] = ports.split(',')
+
+            # Add any additional required services linked to this type. E.g. Caddy for most web-based app types.
+            services['apps'].each do |obj|
+                if obj['name'] == data[:services][name][:type] and obj.key?('requires')
+                    data[:services][name][:requires] = []
+                    obj['requires'].each do |requires|
+                        data[:services][name][:requires].push(requires)
+                    end
+                end
+            end
+
+            # Hooks.
+            # Do we have any default hooks for the application type?
+            services['apps'].each do |obj|
+                if obj['name'] == data[:services][name][:type] and obj.key?('hooks')
+                    obj['hooks'].each do |type, script|
+                        data[:services][name][:hooks] = {type => script}
+                    end
+                end
+            end
+
+            any_hooks = self.prompt.yes?("#{name} // Do you want to add custom hooks to this service? (This will override any preset hooks for the application type)", default: false)
+            if any_hooks
+
+                # Select the hook types they want.
+                hooks = self.prompt.multi_select("#{name} // Which hooks do you want to add to the service?") do |menu|
+                    # menu.choice "Init - Container script. Run after first time containers are started.", 'init'
+                    menu.choice "Pre-Up - Host script. Run just before the containers are started.", 'pre_up'
+                    menu.choice "Post-Up - Container script. Run just after the containers are started.", 'post_up'
+                    menu.choice "Pre-Stop - Container script. Run just before the containers are stopped.", 'pre_stop'
+                    menu.choice "Post-Stop - Host script. Run just after the containers are stopped.", 'post_stop'
+                end
+
+                # Enter the hook script path.
+                if hooks
+                    data[:services][name][:hooks] = {}
+                    hooks.each do |hook|
+                        data[:services][name][:hooks][hook] = []
+                        data[:services][name][:hooks][hook].push(self.prompt.ask("Enter the path of the script for this hook (#{hook}): "))
+                    end
+                end
+
+            end
+
+            data[:services][name][:local_dir] = self.prompt.ask("#{name} // What directory do you want mounted to the service container?", default: "./")
+
         end
 
         # Choose the other services required for the app.
@@ -518,54 +573,6 @@ class QuickDev
 
         end
 
-        # Hooks.
-        # Do we have any default hooks for the application type?
-        services['apps'].each do |obj|
-            if obj['name'] == data[:app][:type] and obj.key?('hooks')
-                obj['hooks'].each do |type, script|
-                    data[:app][:hooks] = {type => script}
-                end
-            end
-        end
-
-        any_hooks = self.prompt.multi_select("Do you want to add custom hooks to any of your services? (This will override any preset hooks for the application type)") do |menu|
-            menu.choice :Application, 'app'
-
-            if other_services.include?('db')
-                menu.choice :Database, 'db'
-            end
-
-            if other_services.include?('cache')
-                menu.choice :Caching, 'cache'
-            end
-        end
-
-        if any_hooks
-
-            hooks = {}
-            any_hooks.each do |srv|
-
-                # Select the hook types they want.
-                hooks[srv] = self.prompt.multi_select("Which hooks do you want to add to your #{srv} service?") do |menu|
-                    # menu.choice "Init - Container script. Run after first time containers are started.", 'init'
-                    menu.choice "Pre-Up - Host script. Run just before the containers are started.", 'pre_up'
-                    menu.choice "Post-Up - Container script. Run just after the containers are started.", 'post_up'
-                    menu.choice "Pre-Stop - Container script. Run just before the containers are stopped.", 'pre_stop'
-                    menu.choice "Post-Stop - Host script. Run just after the containers are stopped.", 'post_stop'
-                end
-
-                # Enter the hook script path.
-                if hooks[srv]
-                    data[srv.intern][:hooks] = {}
-                    hooks[srv].each do |hook|
-                        data[srv.intern][:hooks][hook] = []
-                        data[srv.intern][:hooks][hook].push(self.prompt.ask("Enter the path of the script for this hook (#{hook}): "))
-                    end
-                end
-
-            end
-        end
-
         self.save_config(data, config_file)
 
     end
@@ -584,19 +591,23 @@ class QuickDev
             self.copy_template(file_name)
         end
 
-        # Then any project type specific ones.
-        Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/*.template').each do |file_name|
-            self.copy_template(file_name)
-        end
+        # Then any project type specific ones for each service.
+        project.services.each do |service, service_data|
 
-        # Apply any patches required.
-        unless self.project.config[:app][:patches].nil?
-            self.project.config[:app][:patches].each do |patch|
-               file = QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/' + patch + '.patch'
-               if File.exist?(file)
-                   self.apply_patch(file)
-               end
+            Dir.glob(QUICK_DEV_PATH + '/.docker/templates/' + service_data[:type] + '/*.template').each do |file_name|
+                self.copy_template(file_name)
             end
+
+            # Apply any patches required.
+            unless service_data[:patches].nil?
+                service_data[:patches].each do |patch|
+                   file = QUICK_DEV_PATH + '/.docker/templates/' + service_data[:type] + '/' + patch + '.patch'
+                   if File.exist?(file)
+                       self.apply_patch(file)
+                   end
+                end
+            end
+
         end
 
         self.say("Project configured (#{config_file}). Run `qd up` to bring up the containers.")
@@ -801,11 +812,20 @@ class QuickDev
         system("docker exec -it #{container} bash")
 
     end
-    
+
     # Build the docker-compose file and the containers, but don't bring them up yet
     def run_build()
 
         @project = Project.load()
+
+        # Define additional arguments which can be passed to the `up` command.
+        options = {}
+        options[:fileonly] = false
+
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd build [options]"
+            opts.on('-f', '--file-only', 'Only build the docker-compose file, not the images') { options[:fileonly] = true }
+        end.parse!
 
         # Delete the docker-compose if it exists
         docker_file = project.dir + '/docker-compose.yml'
@@ -815,8 +835,10 @@ class QuickDev
         project.build_docker_compose()
 
         # Build images and containers.
-        system("docker compose pull")
-        system("docker compose build --no-cache")
+        if not options[:fileonly]
+            system("docker compose pull")
+            system("docker compose build --no-cache")
+        end
 
     end
 
@@ -831,7 +853,7 @@ class QuickDev
             opts.banner = "Usage: qd up [options]"
             opts.on('-r', '--rebuild', 'Rebuild the docker image(s)') { options[:rebuild] = 'rebuild' }
         end.parse!
-        
+
         # Build the docker-compose file if it's missing.
         unless File.exist?(self.project.dir + '/docker-compose.yml')
             project.build_docker_compose()
@@ -842,7 +864,7 @@ class QuickDev
 
         # Bring up core quick-dev containers.
         system("docker compose -f #{QUICK_DEV_PATH}/docker-compose.yml up -d")
-        
+
         # Rebuild the project images if requested.
         if options[:rebuild]
             system("docker compose pull")
@@ -861,7 +883,7 @@ class QuickDev
 
         self.say("\n")
         self.run_services()
-    
+
     end
 
     # Execute hook on the host or service container, depending on the hook type
@@ -945,7 +967,7 @@ class QuickDev
     # @param [String] file_name The template file to copy
     # @param [String|nil] project_path If specified, it will be copied to this path.
     def copy_template(file_name, project_path = nil)
-        
+
         # Replace placeholders with project values in the copied files.
         replace_map = {
             '%project.name%' => self.project.name,
@@ -966,10 +988,10 @@ class QuickDev
         unless File.directory?(project_path)
             FileUtils.mkdir_p(project_path)
         end
-        
+
         # This creates a "|" separated string with all the keys from the map.
         re = Regexp.new(replace_map.keys.map { |x| Regexp.escape(x) }.join('|'))
-        
+
         # Remove the ".template" extension and prepend any other directory.
         new_file_name = project_path + File.basename(file_name.gsub(".template", ""))
 
