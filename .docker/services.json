@@ -46,6 +46,16 @@
       "ports": ["8111:8000"]
     },
     {
+      "name": "svelte",
+      "lang": "node",
+      "image": "quick-dev:node:svelte",
+      "args": [{"name": "NODE_VERSION", "default": "22.14.0"}],
+      "ports": ["4173:4173,5173:5173"],
+      "hooks": {
+        "post_up": ["npm install"]
+      }
+    },
+    {
       "name": "other"
     }
   ],

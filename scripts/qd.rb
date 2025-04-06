@@ -64,8 +64,6 @@ class QuickDev
                 self.run_connect()
             when 'remove'
                 self.run_remove()
-            # when 'cluster'
-            #     self.run_cluster()
             when 'services'
                 self.run_services()
             when 'backup'
@@ -74,6 +72,8 @@ class QuickDev
                 self.run_restore()
             when 'dashboard'
                 self.run_dashboard()
+            when 'test'
+                QuickDev.get_apps()
             else
                 self.run_cmd()
 
@@ -127,7 +127,7 @@ class QuickDev
             destroy         Stops and deletes the project containers
                             [-a|--all] Includes the core quick-dev system containers
             remove          Completely remove the project from quick-dev
-            connect         Opens terminal connection to a project container (default: web)
+            connect         Opens terminal connection to a project container (default: "app" or first service found)
                             [name] Specific container to connect to
             services        Lists all running services in the project and their endpoints
             dashboard       Starts the Quick-Dev dashboard and opens it in your web browser
@@ -185,38 +185,43 @@ class QuickDev
     # Backup the attached database
     def run_backup()
 
-        # Load up what info we can from the dir.
-        @project = Project.load()
-
-        # Do we have a DB service?
-        unless self.project.config.key?(:db)
-            abort('No database service defined for this project')
-        end
-
-        type = self.project.config[:db][:type]
-
         # Define additional arguments which can be passed to the `backup` command.
-        options = {'user': 'user', 'password': 'password', 'db': 'main'}
+        options = {'user': 'user', 'password': 'password', 'db': 'main', 'service': 'db'}
         OptionParser.new do |opts|
             opts.banner = "Usage: qd backup [options]"
             opts.on('-u=user', '--user=user','Which database user to use (Default: `user`)')
             opts.on('-p=password', '--password=password', 'The user\'s password (Default: `password`)')
             opts.on('-d=database', '--db=database', 'Which database to backup (Default: `main`)')
+            opts.on('-s=service', '--service=name', 'Which service contains the database? (Default: `db`)')
         end.parse!(into: options)
+
+        # Load up what info we can from the dir.
+        @project = Project.load()
+
+        # Work out the container name.
+        container = "#{self.project.name}-#{options[:service]}"
+
+        # Do we have that service?
+        unless self.project.services.key?(options[:service])
+            abort("Service (#{options[:service]}) does not exist on this project")
+        end
+
+        # Work out the database type.
+        type = self.project.services[options[:service]][:type]
 
         file_name = QUICK_DEV_PATH + '/backups/' + self.project.name + '-' + options[:db] + '-' + Time.now.strftime("%Y-%m-%d")
 
         if type === 'mariadb'
             file_name = file_name + '.sql'
-            system("docker exec -it #{self.project.name}-db mariadb-dump -u #{options[:user]} -p#{options[:password]} --databases #{options[:db]} > #{file_name}")
+            system("docker exec -it #{container} mariadb-dump -u #{options[:user]} -p#{options[:password]} --databases #{options[:db]} > #{file_name}")
         elsif type ==='mysql'
             file_name = file_name + '.sql'
-            system("docker exec -it #{self.project.name}-db bash -c 'export MYSQL_PWD=#{options[:password]}; mysqldump -u #{options[:user]} --databases #{options[:db]} --no-tablespaces' > #{file_name}")
+            system("docker exec -it #{container} bash -c 'export MYSQL_PWD=#{options[:password]}; mysqldump -u #{options[:user]} --databases #{options[:db]} --no-tablespaces' > #{file_name}")
         elsif type === 'postgres'
             file_name = file_name + '.pgdump'
             local_file = '/tmp/' + File.basename(file_name)
-            system("docker exec -it #{self.project.name}-db bash -c 'PGPASSWORD=#{options[:password]} pg_dump -Fc -U #{options[:user]} -d #{options[:db]} > #{local_file}'")
-            system("docker cp #{self.project.name}-db:#{local_file} #{file_name}")
+            system("docker exec -it #{container} bash -c 'PGPASSWORD=#{options[:password]} pg_dump -Fc -U #{options[:user]} -d #{options[:db]} > #{local_file}'")
+            system("docker cp #{container}:#{local_file} #{file_name}")
         end
 
         self.say("File created: #{file_name}")
@@ -226,39 +231,43 @@ class QuickDev
     # Restore a database dump to the database container
     def run_restore()
 
+        # Define additional arguments which can be passed to the `restore` command.
+        options = {'user': 'user', 'password': 'password', 'db': 'main', 'service': 'db'}
+        OptionParser.new do |opts|
+            opts.banner = "Usage: qd restore [options]"
+            opts.on('-u=user', '--user=user','Which database user to use (Default: `user`)')
+            opts.on('-p=password', '--password=password', 'The user\'s password (Default: `password`)')
+            opts.on('-d=database', '--db=database', 'Which database to backup (Default: `main`)')
+            opts.on('-s=service', '--service=name', 'Which service contains the database? (Default: `db`)')
+        end.parse!(into: options)
+
         # Load up what info we can from the dir.
         @project = Project.load()
 
-        # Do we have a DB service?
-        unless self.project.config.key?(:db)
-            abort('No database service defined for this project')
+        # Work out the container name.
+        container = "#{self.project.name}-#{options[:service]}"
+
+        # Do we have that service?
+        unless self.project.services.key?(options[:service])
+            abort("Service (#{options[:service]}) does not exist on this project")
         end
 
-        type = self.project.config[:db][:type]
+        type = self.project.services[options[:service]][:type]
         file_name = ARGV[1]
 
         unless file_name
             abort("First argument must be the dump file to restore")
         end
 
-        # Define additional arguments which can be passed to the `backup` command.
-        options = {'user': 'user', 'password': 'password', 'db': 'main'}
-        OptionParser.new do |opts|
-            opts.banner = "Usage: qd backup [options]"
-            opts.on('-u=user', '--user=user','Which database user to use (Default: `user`)')
-            opts.on('-p=password', '--password=password', 'The user\'s password (Default: `password`)')
-            opts.on('-d=database', '--db=database', 'Which database to backup (Default: `main`)')
-        end.parse!(into: options)
-
         if type === 'mariadb'
-            system("docker exec -i #{self.project.name}-db bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]}' < #{file_name}")
+            system("docker exec -i #{container} bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]}' < #{file_name}")
         elsif type ==='mysql'
-            system("cat #{file_name} | docker exec -i #{self.project.name}-db bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]}'")
+            system("cat #{file_name} | docker exec -i #{container} bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]}'")
         elsif type === 'postgres'
             system("docker cp #{file_name} #{self.project.name}-db:/tmp")
-            system("docker exec -i #{self.project.name}-db bash -c 'dropdb #{options[:db]} -U #{options[:user]}'")
+            system("docker exec -i #{container} bash -c 'dropdb #{options[:db]} -U #{options[:user]}'")
             local_file = '/tmp/' + File.basename(file_name)
-            system("docker exec -i #{self.project.name}-db bash -c 'pg_restore -C -U #{options[:user]} -d postgres #{local_file}'")
+            system("docker exec -i #{container} bash -c 'pg_restore -C -U #{options[:user]} -d postgres #{local_file}'")
         end
 
     end
@@ -280,7 +289,8 @@ class QuickDev
 
         # Build the cfg.yaml from the preset.
         data = {}
-        data[:app] = {
+        data[:services] = {}
+        data[:services]['app'] = {
           'type': choice['type'],
           'image': choice['app']['image'],
           'args': {},
@@ -290,52 +300,44 @@ class QuickDev
 
         if choice['app']['args']
             choice['app']['args'].each do |arg, value|
-                data[:app][:args][arg] = value
+                data[:services]['app'][:args][arg] = value
             end
         end
 
         if choice['app']['ports']
-            data[:app][:ports] = choice['app']['ports']
+            data[:services]['app'][:ports] = choice['app']['ports']
         end
 
         if choice['app']['hooks']
-            data[:app][:hooks] = choice['app']['hooks']
+            data[:services]['app'][:hooks] = choice['app']['hooks']
         end
 
         if choice['app']['patches']
-            data[:app][:patches] = choice['app']['patches']
+            data[:services]['app'][:patches] = choice['app']['patches']
         end
 
         # If a /mnt directory exists within the template directory, add that as a mount volume.
-        mnt = QUICK_DEV_PATH + '/.docker/templates/' + data[:app][:type] + '/mnt'
+        mnt = QUICK_DEV_PATH + '/.docker/templates/' + data[:services]['app'][:type] + '/mnt'
         if Dir.exist?(mnt)
-            data[:app][:volumes] = [mnt + ':/mnt']
+            data[:services]['app'][:volumes] = [mnt + ':/mnt']
         end
 
         if choice['db']
             split = choice['db']['image'].split(':')
-            data[:db] = {
+            data[:services]['db'] = {
               'type': split[0],
-              'version': split[1]
+              'version': split[1],
+              'image': choice['db']['image']
             }
         end
 
         if choice['cache']
             split = choice['cache']['image'].split(':')
-            data[:cache] = {
+            data[:services]['cache'] = {
               'type': split[0],
-              'version': split[1]
+              'version': split[1],
+              'image': choice['cache']['image']
             }
-        end
-
-        if choice['other']
-            data[:other] = []
-            choice['other'].each do |name, image|
-                data[:other].push({
-                'type': name,
-                'image': image
-             })
-            end
         end
 
         config_file = project.dir + '/cfg.yaml'
@@ -389,7 +391,7 @@ class QuickDev
         num_services.times do |i|
             service_name = self.prompt.ask("Service [#{i + 1}] name (e.g. 'app', 'backend', etc...)", required: true, default: "app") do |p|
                 p.validate ->(input) { input =~ /^[a-z]+$/ and not my_services.include?(input) and not reserved_names.include?(input) }
-                p.messages[:valid?] = "Service name must be lowercase [a-z] only and not one of the reserved names: db, cache"
+                p.messages[:valid?] = "Service name must be lowercase [a-z] and not one of the reserved names: db, cache"
             end
             my_services.push(service_name)
         end
@@ -510,19 +512,19 @@ class QuickDev
         # If we need a DB, what engine and version do we want?
         if other_services.include?('db')
 
-            data[:db] = {}
+            data[:services]['db'] = {}
 
             # Get the DB engine.
-            data[:db][:type] = self.prompt.select("Choose a database engine") do |menu|
+            data[:services]['db'][:type] = self.prompt.select("Choose a database engine") do |menu|
                 services['db'].each do |obj|
                     menu.choice obj['name']
                 end
             end
 
             # Get the version.
-            which_version = self.prompt.select("Choose a #{data[:db][:type]} version") do |menu|
+            which_version = self.prompt.select("Choose a #{data[:services]['db'][:type]} version") do |menu|
                 services['db'].each do |obj|
-                    if obj['name'] === data[:db][:type]
+                    if obj['name'] === data[:services]['db'][:type]
                         obj['versions'].each do |v|
                             menu.choice v
                         end
@@ -533,29 +535,32 @@ class QuickDev
 
             # If we chose custom, ask for a version tag.
             if which_version === 'custom'
-                data[:db][:version] = self.prompt.ask("Which #{data[:db][:type]} version would you like? ")
+                data[:services]['db'][:version] = self.prompt.ask("Which #{data[:services]['db'][:type]} version would you like? ")
             else
-                data[:db][:version] = which_version
+                data[:services]['db'][:version] = which_version
             end
+
+            # Image
+            data[:services]['db'][:image] = data[:services]['db'][:type] + ':' + data[:services]['db'][:version]
 
         end
 
         # If we want a caching service.
         if other_services.include?('cache')
 
-            data[:cache] = {}
+            data[:services]['cache'] = {}
 
             # Get the cache engine.
-            data[:cache][:type] = self.prompt.select("Choose a caching system") do |menu|
+            data[:services]['cache'][:type] = self.prompt.select("Choose a caching system") do |menu|
                 services['cache'].each do |obj|
                     menu.choice obj['name']
                 end
             end
 
             # Get the version.
-            which_version = self.prompt.select("Choose a #{data[:cache][:type]} version") do |menu|
+            which_version = self.prompt.select("Choose a #{data[:services]['cache'][:type]} version") do |menu|
                 services['cache'].each do |obj|
-                    if obj['name'] === data[:cache][:type]
+                    if obj['name'] === data[:services]['cache'][:type]
                         obj['versions'].each do |v|
                             menu.choice v
                         end
@@ -566,10 +571,13 @@ class QuickDev
 
             # If we chose custom, ask for a version tag.
             if which_version === 'custom'
-                data[:cache][:version] = self.prompt.ask("Which #{data[:cache][:type]} version would you like? ")
+                data[:services]['cache'][:version] = self.prompt.ask("Which #{data['cache'][:type]} version would you like? ")
             else
-                data[:cache][:version] = which_version
+                data[:services]['cache'][:version] = which_version
             end
+
+            # Image
+            data[:services]['cache'][:image] = data[:services]['cache'][:type] + ':' + data[:services]['cache'][:version]
 
         end
 
@@ -608,6 +616,11 @@ class QuickDev
                 end
             end
 
+        end
+
+        # Then do we have any custom templates to copy from the project itself? This will override core ones if they have the same name.
+        Dir.glob(project.dir + '/.templates/*.template').each do |file_name|
+            self.copy_template(file_name)
         end
 
         self.say("Project configured (#{config_file}). Run `qd up` to bring up the containers.")
@@ -652,18 +665,18 @@ class QuickDev
 
         services = []
 
-        if type === 'project' and !project.config.nil?
+        if type === 'project' and !project.services.nil?
 
             # Loop through the project services.
-            project.config.each do |name, service|
+            project.services.each do |name, service|
 
                 get_service = -> (name, service) {
 
                     url = ''
                     status = QuickDev.get_service_status(project.name + '-' + "#{name}").strip
 
-                    # Not sure at the moment how else to know which ones will have URLs.
-                    if "#{name}" == 'app'
+                    # Get url of "main" application service.
+                    if service[:main]
                         url = project.get_url()
                     end
 
@@ -688,7 +701,7 @@ class QuickDev
 
         elsif type === 'core'
 
-            if !project.config.nil? and !project.config[:db].nil?
+            if !project.services.nil? and !project.services['db'].nil?
                 adminer_url = "http://adminer.localhost:8080?server=#{project.name}-db&username=user&db=main"
             else
                 adminer_url = nil
@@ -735,42 +748,6 @@ class QuickDev
 
     end
 
-    #
-    # def run_cluster()
-    #
-    #     command = ARGV[1]
-    #
-    #     case command
-    #
-    #         when 'setup'
-    #             self.run_cluster_setup()
-    #         when 'destroy'
-    #             self.run_cluster_destroy()
-    #         else
-    #             abort('Invalid command. Run `qd -h` for help.')
-    #
-    #     end
-    #
-    # end
-    #
-    # def run_cluster_setup()
-    #
-    #     self.say("Downloading minikube and configuring cluster for (#{self.project.name})")
-    #     system("curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 --output-dir #{QUICK_DEV_PATH}/.k8s/")
-    #     system("sudo install #{QUICK_DEV_PATH}/.k8s/minikube-linux-amd64 /usr/local/bin/minikube")
-    #     system("minikube start --driver=docker")
-    #     system("minikube kubectl -- create namespace #{self.project.name}")
-    #
-    # end
-    #
-    # def run_cluster_destroy()
-    #
-    #     self.say("Destroying cluster (#{self.project.name})")
-    #     system("minikube kubectl -- delete namespace #{self.project.name}")
-    #
-    #
-    # end
-
     # Remove the project from quick-dev.
     def run_remove()
 
@@ -806,7 +783,8 @@ class QuickDev
         if !ARGV[1].nil?
             container = ARGV[1]
         else
-            container = self.project.name + '-app'
+            main = self.project.get_main_service(name: true)
+            container = self.project.name + '-' + main
         end
 
         system("docker exec -it #{container} bash")
@@ -890,8 +868,7 @@ class QuickDev
     # @param [String] hook_type
     def execute_hooks(hook_type)
 
-        services = self.project.config
-        services.each do |service, type|
+        self.project.services.each do |service, type|
             unless !(type.is_a?(Hash)) or type[:hooks].nil? or type[:hooks][hook_type].nil?
                 type[:hooks][hook_type].each do |script|
                     if hook_type === 'pre_up' or hook_type === 'post_stop'
@@ -971,7 +948,6 @@ class QuickDev
         # Replace placeholders with project values in the copied files.
         replace_map = {
             '%project.name%' => self.project.name,
-            '%project.image%' => self.project.image,
             '%project.url%' => self.project.url,
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
@@ -1039,14 +1015,22 @@ class QuickDev
 
                 # Get the project name from the path.
                 name = Pathname.new(p).basename.to_s
+
                 app[:name] = name
 
                 # Load the cfg.yaml file if it exists.
                 project = Project.get(name, p)
+
                 app[:config] = project.config
 
+                # If there is no config, it's not a quick-dev project so ignore it.
+                if app[:config].nil?
+                    next
+                end
+
                 # Check the status of the project by checking its main application container.
-                app[:status] = QuickDev.get_service_status(name + '-app')
+                main = project.get_main_service(name: true)
+                app[:status] = QuickDev.get_service_status(name + '-'+ main)
 
                 # Get the services for this application.
                 app[:services] = QuickDev.get_service_info('project', project) + QuickDev.get_service_info('core', project)

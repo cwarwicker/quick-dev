@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :services, :config, :type, :name, :image, :image_args, :ports, :hooks, :patches, :volumes, :url, :uri, :db, :dir, :working_dir, :requires
+    attr_accessor :services, :config, :name, :uri, :url, :db, :dir, :working_dir
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -28,11 +28,13 @@ class Project
       project = Project.new
       project.name = name
       project.dir = dir
+      project.working_dir = '/app'
 
       # Load the project config.
       config_file = project.dir + '/cfg.yaml'
       if File.exist?(config_file)
           project.config = YAML.load_file(config_file)
+          load_services(project)
       else
         project.config = nil
       end
@@ -52,9 +54,20 @@ class Project
         end
 
         project.config = YAML.load_file(config_file)
-        project.services = {}
+        load_services(project)
 
-        project.config[:services].each do |service, data|
+        project.uri = project.name + '.localhost'
+        project.url = 'https://' + project.name + '.localhost'
+        project.db = project.config[:db][:type] if !project.config[:db].nil?
+
+        return project
+
+    end
+
+    def self.load_services(project)
+
+      project.services = {}
+      project.config[:services].each do |service, data|
 
           project.services[service] = {}
           project.services[service][:type] = data[:type]
@@ -65,16 +78,16 @@ class Project
           project.services[service][:hooks] = data[:hooks] if !data[:hooks].nil? and !data[:hooks].empty?
           project.services[service][:patches] = data[:patches] if !data[:patches].nil? and !data[:patches].empty?
           project.services[service][:volumes] = data[:volumes] if !data[:volumes].nil? and !data[:volumes].empty?
-          project.services[service][:working_dir] = '/app'
+          project.services[service][:working_dir] = project.working_dir
           project.services[service][:local_dir] = data[:local_dir]
 
+          if service == project.config[:services].keys.first
+              project.services[service][:main] = true
+          else
+              project.services[service][:main] = false
+          end
+
         end
-
-        project.uri = project.name + '.localhost'
-        project.url = 'https://' + project.name + '.localhost'
-        project.db = project.config[:db][:type] if !project.config[:db].nil?
-
-        return project
 
     end
 
@@ -91,6 +104,7 @@ class Project
        end
 
        @dir = QUICK_DEV_PATH + '/apps/' + self.name
+       @working_dir = '/app'
 
     end
 
@@ -101,81 +115,55 @@ class Project
 
         self.services.each do |name, service|
 
-          data['services'][name] = {
-            'container_name': self.name + '-' + name,
-            'volumes': [
-              service[:local_dir] + ':' + service[:working_dir]
-            ],
-            'networks': [
-              'quick-dev-network'
-            ],
-            'stdin_open': true,
-            'extra_hosts': [
-              'host.docker.internal:host-gateway'
-            ],
-          }
-
-          if service[:volumes]
-              data['services'][name][:volumes] = data['services'][name][:volumes] + service[:volumes]
-          end
-
-          if self.ports
-              data['services'][name]['ports'] = service[:ports]
-          end
-
-          # If we are using a quick-dev image, we need a build context.
-          if service[:image].start_with?('quick-dev:')
-
-            img = service[:image].delete_prefix('quick-dev:')
-            stage = img.split(':')[-1]
-            common = img.split(':')[0]
-
-            data['services'][name]['build'] = {
-              'context': QUICK_DEV_PATH + '/.docker/images/' + common,
-              'target': stage,
-              'args': service[:image_args]
+            data['services'][name] = {
+                'container_name': self.name + '-' + name,
+                'networks': [
+                  'quick-dev-network'
+                ],
+                'volumes': [],
+                'stdin_open': true,
+                'extra_hosts': [
+                  'host.docker.internal:host-gateway'
+                ],
             }
 
-            data['services'][name]['image'] = 'quick-dev:' + self.name + '-' + name
+            if service[:local_dir] and service[:working_dir]
+                data['services'][name][:volumes].push(service[:local_dir] + ':' + service[:working_dir])
+            end
 
-          else
-            data['services'][name]['image'] = service[:image]
-          end
+            if service[:volumes]
+                data['services'][name][:volumes] = data['services'][name][:volumes] + service[:volumes]
+            end
 
-        end
+            if service[:ports]
+                data['services'][name][:ports] = service[:ports]
+            end
 
-        # Database.
-        if self.config[:db]
+            # If we are using a quick-dev image, we need a build context.
+            if service[:image] and service[:image].start_with?('quick-dev:')
 
-          data['services']['db'] = {
-            'container_name': self.name + '-db',
-            'stdin_open': true,
-            'image': self.config[:db][:type] + ':' + self.config[:db][:version],
-            'networks': [
-              'quick-dev-network'
-            ]
-          }
+                img = service[:image].delete_prefix('quick-dev:')
+                stage = img.split(':')[-1]
+                common = img.split(':')[0]
 
-          # Read service-specific config to load in.
-          service_config = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services/' + self.config[:db][:type] + '.service'), {symbolize_names: true})
-          data['services']['db'] = data['services']['db'].merge(service_config)
+                data['services'][name]['build'] = {
+                  'context': QUICK_DEV_PATH + '/.docker/images/' + common,
+                  'target': stage,
+                  'args': service[:image_args]
+                }
 
-        end
+                data['services'][name]['image'] = 'quick-dev:' + self.name + '-' + name
 
-        # Caching.
-        if self.config[:cache]
+            else
+                data['services'][name]['image'] = service[:image]
+            end
 
-          data['services']['cache'] = {
-            'container_name': self.name + '-cache',
-            'image': self.config[:cache][:type] + ':' + self.config[:cache][:version],
-            'networks': [
-              'quick-dev-network'
-            ]
-          }
-
-          # Read service-specific config to load in.
-          service_config = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services/' + self.config[:cache][:type] + '.service'), {symbolize_names: true})
-          data['services']['cache'] = data['services']['cache'].merge(service_config)
+            # Is there a service-specific config to load in?
+            path = QUICK_DEV_PATH + '/.docker/services/' + service[:type] + '.service'
+            if File.exist?(path)
+                service_config = JSON.parse(File.read(path), {symbolize_names: true})
+                data['services'][name] = data['services'][name].merge(service_config)
+            end
 
         end
 
@@ -190,15 +178,24 @@ class Project
 
     end
 
+    # Assumption is that the first application service is the "main" one, which will be used for things like the url.
+    def get_main_service(name = false)
+        return name ? self.services.keys.first : self.services.values.first
+    end
+
     # Get the URL of the main application
     # This might sometimes return an invalid url if the application isn't web-based, but currently not got a way to define that.
     def get_url()
 
       url = "https://#{self.name}.localhost"
+      main = self.get_main_service()
 
-      if self.ports
+      if main[:ports]
         # Assumption is that the first port mapping is the main one.
-        url = url + ':' + self.ports[0].split(':')[0]
+        port =  main[:ports][0].split(':')[0]
+        if port != '80' and port != '443'
+            url = url + ':' + main[:ports][0].split(':')[0]
+        end
       end
 
       return url

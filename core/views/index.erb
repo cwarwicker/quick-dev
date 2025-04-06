@@ -39,7 +39,7 @@
         <% @apps.each do |app| %>
           <div class="row">
             <div class="cell"><a href="#<%= app[:name] %>" id="application-link-<%= app[:name] %>" class="application-link" data-app="<%= app[:name] %>"><%= app[:name] %></a></div>
-            <div class="cell"><%= (app[:config]) ? app[:config][:app][:type] : "-" %></div>
+            <div class="cell"><%= (app[:services]) ? app[:services][0][:type] : "-" %></div>
             <div class="cell"><%= (app[:branch]) ? app[:branch] : "-" %></div>
             <div class="cell status-cell">
               <span class="cell-label">Status:</span>
