@@ -293,6 +293,7 @@ class QuickDev
         data[:services]['app'] = {
           'type': choice['type'],
           'image': choice['app']['image'],
+          'volumes': [],
           'args': {},
           'ports': [],
           'hooks': {}
@@ -303,6 +304,13 @@ class QuickDev
                 data[:services]['app'][:args][arg] = value
             end
         end
+
+        if choice['app']['volumes']
+            data[:services]['app'][:volumes] = choice['app']['volumes']
+        end
+
+        # Default for presets is always everything to /app.
+        data[:services]['app'][:local_dir] = "./"
 
         if choice['app']['ports']
             data[:services]['app'][:ports] = choice['app']['ports']
@@ -319,7 +327,7 @@ class QuickDev
         # If a /mnt directory exists within the template directory, add that as a mount volume.
         mnt = QUICK_DEV_PATH + '/.docker/templates/' + data[:services]['app'][:type] + '/mnt'
         if Dir.exist?(mnt)
-            data[:services]['app'][:volumes] = [mnt + ':/mnt']
+            data[:services]['app'][:volumes] = data[:services]['app'][:volumes] + [mnt + ':/mnt']
         end
 
         if choice['db']
