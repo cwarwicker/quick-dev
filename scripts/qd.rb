@@ -635,7 +635,8 @@ class QuickDev
         # Project must be loaded.project_class
         @project = Project.load()
 
-        project_class = self.get_class(self.project.type.capitalize)
+        main = self.project.get_main_service
+        project_class = self.get_class(main[:type].capitalize)
         all_class = self.get_class('All')
         if project_class and project_class.respond_to?(command)
             container = self.project.name + '-app'
@@ -644,7 +645,7 @@ class QuickDev
             container = self.project.name + '-app'
             all_class.send(command, container, self)
         else
-            self.say('Invalid command ('+command+') for project type ('+self.project.type+')')
+            self.say('Invalid command ('+command+') for project type ('+main[:type]+')')
         end
 
     end
@@ -986,7 +987,8 @@ class QuickDev
         else
 
             # Moodle/Totara have some bits that need changing.
-            if ['moodle', 'totara'].include?(self.project.type)
+            main = self.project.get_main_service
+            if ['moodle', 'totara'].include?(main[:type])
                 replace_map['%project.db%'] = 'pgsql' if self.project.db == 'postgres'
                 replace_map['%project.db%'] = 'mysqli' if self.project.db == 'mysql'
             end
