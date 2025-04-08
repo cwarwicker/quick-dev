@@ -960,7 +960,7 @@ class QuickDev
             '%project.url%' => self.project.url,
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
-            '%project.db%' => self.project.db,
+            '%project.db%' => self.project.services['db'][:type],
             '%root%' => QUICK_DEV_PATH,
         }
 
@@ -997,8 +997,8 @@ class QuickDev
             # Moodle/Totara have some bits that need changing.
             main = self.project.get_main_service
             if ['moodle', 'totara'].include?(main[:type])
-                replace_map['%project.db%'] = 'pgsql' if self.project.db == 'postgres'
-                replace_map['%project.db%'] = 'mysqli' if self.project.db == 'mysql'
+                replace_map['%project.db%'] = 'pgsql' if self.project.services['db'][:type] == 'postgres'
+                replace_map['%project.db%'] = 'mysqli' if self.project.services['db'][:type] == 'mysql'
             end
 
             # Copy the file into the site directory.
