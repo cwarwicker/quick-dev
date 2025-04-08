@@ -243,6 +243,7 @@ class QuickDev
 
         # Load up what info we can from the dir.
         @project = Project.load()
+        main = self.project.get_main_service()
 
         # Work out the container name.
         container = "#{self.project.name}-#{options[:service]}"
@@ -259,15 +260,48 @@ class QuickDev
             abort("First argument must be the dump file to restore")
         end
 
+        # Define which tables to exclude when restoring, if we are restoring a production dump.
+        exclude_tables = []
+        if main[:type] === 'moodle' or main[:type] === 'totara'
+            exclude_tables = ['mdl_logstore_standard_log', 'mdl_grade_grades_history', 'mdl_grade_items_history', 'mdl_backup_logs']
+        end
+
+        exclude = ''
+        exclude_tables.each do |item|
+            exclude = exclude + "/#{item}/d; "
+        end
+
+
         if type === 'mariadb'
             system("docker exec -i #{container} bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]}' < #{file_name}")
         elsif type ==='mysql'
             system("cat #{file_name} | docker exec -i #{container} bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]}'")
         elsif type === 'postgres'
-            system("docker cp #{file_name} #{self.project.name}-db:/tmp")
-            system("docker exec -i #{container} bash -c 'dropdb #{options[:db]} -U #{options[:user]}'")
+
             local_file = '/tmp/' + File.basename(file_name)
-            system("docker exec -i #{container} bash -c 'pg_restore -C -U #{options[:user]} -d postgres #{local_file}'")
+
+            # First upload the dump file to the container.
+            self.say("Uploading dump file (#{file_name}) to container (#{self.project.name}-db:/tmp)...")
+            system("docker cp #{file_name} #{self.project.name}-db:/tmp")
+
+            # Then generate a file containing all the commands to execute.
+            self.say("Generating restore.list...")
+            system("docker exec -i #{container} bash -c 'pg_restore -l #{local_file} > /tmp/restore.list'")
+
+            # Then strip out tables we don't want to include.
+            self.say("Excluding log/history tables from restore.list...")
+            system("docker exec -i #{container} bash -c 'sed -i \"#{exclude}\" /tmp/restore.list'")
+
+            # Now restore from the restore list.
+            self.say("Dropping existing database...")
+            system("docker exec -i #{container} bash -c 'dropdb -U #{options[:user]} #{options[:database]}'")
+
+            self.say("Creating fresh database...")
+            system("docker exec -i #{container} bash -c 'createdb -U #{options[:user]} #{options[:database]}'")
+
+            self.say("Running restore...")
+            system("docker exec -i #{container} bash -c 'pg_restore --verbose --no-owner -L /tmp/restore.list -U #{options[:user]} -d #{options[:db]} #{local_file}'")
+            
         end
 
     end
