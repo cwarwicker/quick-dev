@@ -72,8 +72,8 @@ class QuickDev
                 self.run_restore()
             when 'dashboard'
                 self.run_dashboard()
-            when 'test'
-                QuickDev.get_apps()
+            when 'open'
+                self.run_open()
             else
                 self.run_cmd()
 
@@ -98,6 +98,18 @@ class QuickDev
             if options[:detach].nil?
                 self.open("http://127.0.0.1:4567/")
             end
+        end
+
+    end
+
+    def run_open
+
+        # Load up what info we can from the dir.
+        @project = Project.load()
+        main = self.project.get_main_service()
+        if main
+            url = project.get_url()
+            self.open(url)
         end
 
     end
@@ -677,14 +689,13 @@ class QuickDev
         # Project must be loaded.project_class
         @project = Project.load()
 
-        main = self.project.get_main_service
+        main = self.project.get_main_service()
+        container = self.project.name + '-' + self.project.get_main_service(name: true)
         project_class = self.get_class(main[:type].capitalize)
         all_class = self.get_class('All')
         if project_class and project_class.respond_to?(command)
-            container = self.project.name + '-app'
             project_class.send(command, container, self)
         elsif all_class and all_class.respond_to?(command)
-            container = self.project.name + '-app'
             all_class.send(command, container, self)
         else
             self.say('Invalid command ('+command+') for project type ('+main[:type]+')')
