@@ -19,7 +19,7 @@ class Moodle < Php
     def makecourse(container, qd)
        size = ARGV[1]
        name = ARGV[2]
-       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/generator/cli/maketestcourse.php --size=#{size} --shortname=#{name} --fullname=#{name}")
+       system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/generator/cli/maketestcourse.php --size=#{size} --shortname=#{name} --fullname=#{name} --bypasscheck")
     end
 
     def makequiz(container, qd)
