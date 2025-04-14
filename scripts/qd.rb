@@ -306,10 +306,10 @@ class QuickDev
 
             # Now restore from the restore list.
             self.say("Dropping existing database...")
-            system("docker exec -i #{container} bash -c 'dropdb -U #{options[:user]} #{options[:database]}'")
+            system("docker exec -i #{container} bash -c 'dropdb -U #{options[:user]} #{options[:db]}'")
 
             self.say("Creating fresh database...")
-            system("docker exec -i #{container} bash -c 'createdb -U #{options[:user]} #{options[:database]}'")
+            system("docker exec -i #{container} bash -c 'createdb -U #{options[:user]} #{options[:db]}'")
 
             self.say("Running restore...")
             system("docker exec -i #{container} bash -c 'pg_restore --verbose --no-owner -L /tmp/restore.list -U #{options[:user]} -d #{options[:db]} #{local_file}'")
@@ -1005,7 +1005,7 @@ class QuickDev
             '%project.url%' => self.project.url,
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
-            '%project.db%' => self.project.services['db'][:type],
+            '%project.db%' => (self.project.services['db']) ? self.project.services['db'][:type] : '',
             '%root%' => QUICK_DEV_PATH,
         }
 
