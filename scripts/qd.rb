@@ -275,7 +275,7 @@ class QuickDev
         # Define which tables to exclude when restoring, if we are restoring a production dump.
         exclude_tables = []
         if main[:type] === 'moodle' or main[:type] === 'totara'
-            exclude_tables = ['mdl_logstore_standard_log', 'mdl_grade_grades_history', 'mdl_grade_items_history', 'mdl_backup_logs']
+            exclude_tables = ['mdl_logstore_standard_log', 'mdl_grade_grades_history', 'mdl_grade_items_history', 'mdl_backup_logs', 'mdl_course_completion_log']
         end
 
         exclude = ''
@@ -285,9 +285,9 @@ class QuickDev
 
 
         if type === 'mariadb'
-            system("docker exec -i #{container} bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]}' < #{file_name}")
+            system("docker exec -i #{container} bash -c 'exec mariadb -u #{options[:user]} -p#{options[:password]} #{options[:db]}' < #{file_name}")
         elsif type ==='mysql'
-            system("cat #{file_name} | docker exec -i #{container} bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]}'")
+            system("cat #{file_name} | docker exec -i #{container} bash -c 'export MYSQL_PWD=#{options[:password]}; mysql -u #{options[:user]} #{options[:db]}'")
         elsif type === 'postgres'
 
             local_file = '/tmp/' + File.basename(file_name)
