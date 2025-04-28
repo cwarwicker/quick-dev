@@ -60,4 +60,18 @@ RUN git clone https://github.com/andrewnicols/moodle-browser-config.git /var/www
 ARG PHP_VERSION
 FROM moodle AS totara
 
+############################## MAHARA STAGE ########################################
+
+ARG PHP_VERSION
+FROM base as mahara
+
+RUN apt-get install -y locales-all
+
+# Create sitedata directory.
+RUN mkdir -p /var/www/data && chmod 0777 /var/www/data
+
+# Add the .ini files with the directives we need. Using the same ones as Moodle here.
+ADD ./moodle/php.ini /usr/local/etc/php/conf.d/custom.ini
+ADD ./moodle/cli.php.ini /usr/local/php/conf.d/custom-cli.ini
+
 ############################## END ########################################

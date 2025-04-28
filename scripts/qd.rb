@@ -884,6 +884,7 @@ class QuickDev
         OptionParser.new do |opts|
             opts.banner = "Usage: qd up [options]"
             opts.on('-r', '--rebuild', 'Rebuild the docker image(s)') { options[:rebuild] = 'rebuild' }
+            opts.on('-n', '--no-hooks', 'Skip the pre/post up hooks') { options[:nohooks] = true }
         end.parse!
 
         # Build the docker-compose file if it's missing.
@@ -903,15 +904,18 @@ class QuickDev
             system("docker compose build --no-cache")
         end
 
-
         # Run any service pre-up hooks.
-        self.execute_hooks('pre_up')
+        if not options[:nohooks]
+            self.execute_hooks('pre_up')
+        end
 
         # Bring up project containers.
         system("docker compose up -d")
 
         # Run any service post-up hooks or init hooks.
-        self.execute_hooks('post_up')
+        if not options[:nohooks]
+            self.execute_hooks('post_up')
+        end
 
         self.say("\n")
         self.run_services()
@@ -1044,6 +1048,11 @@ class QuickDev
             if ['moodle', 'totara'].include?(main[:type])
                 replace_map['%project.db%'] = 'pgsql' if self.project.services['db'][:type] == 'postgres'
                 replace_map['%project.db%'] = 'mysqli' if self.project.services['db'][:type] == 'mysql'
+            end
+
+            # Mahara has to copy stuff into the htdocs directory.
+            if main[:type] === 'mahara'
+                new_file_name = project_path + 'htdocs/' + File.basename(file_name.gsub(".template", ""))
             end
 
             # Copy the file into the site directory.

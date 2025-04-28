@@ -32,6 +32,13 @@
       "ports": []
     },
     {
+      "name": "mahara",
+      "lang": "php",
+      "image": "quick-dev:php:mahara",
+      "args": [{"name": "PHP_VERSION", "default": 8.3}],
+      "ports": []
+    },
+    {
       "name": "python",
       "lang": "python",
       "image": "quick-dev:python:base",

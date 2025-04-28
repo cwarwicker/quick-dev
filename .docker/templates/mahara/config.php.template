@@ -1,0 +1,21 @@
+<?php
+$cfg = new stdClass();
+
+$cfg->dbtype   = '%project.db%';
+$cfg->dbhost   = '%project.name%-db';
+$cfg->dbport   = null; // Change if you are using a non-standard port number for your database
+$cfg->dbname   = 'main';
+$cfg->dbuser   = 'user';
+$cfg->dbpass   = 'password';
+$cfg->dataroot = '/var/www/data';
+$cfg->urlsecret = null;
+$cfg->passwordsaltmain = 'don\'t forget to like and subscribe';
+$cfg->productionmode = false;
+$cfg->log_dbg_targets = LOG_TARGET_SCREEN | LOG_TARGET_ERRORLOG;
+$cfg->log_info_targets = LOG_TARGET_SCREEN | LOG_TARGET_ERRORLOG;
+$cfg->log_warn_targets = LOG_TARGET_SCREEN | LOG_TARGET_ERRORLOG;
+$cfg->noreplyaddress = 'noreply@local.host';
+
+if (file_exists(__DIR__ . '/config-custom.php')) {
+    require_once __DIR__ . '/config-custom.php';
+}
