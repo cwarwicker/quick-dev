@@ -44,6 +44,7 @@ ARG PHP_VERSION
 FROM base AS moodle
 
 RUN apt-get install -y locales-all
+RUN pecl install excimer && docker-php-ext-enable excimer
 
 # Create sitedata directory.
 RUN mkdir -p /var/www/data && chmod 0777 /var/www/data
