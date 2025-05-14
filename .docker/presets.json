@@ -114,11 +114,11 @@
     }
   },
   "laravel": {
-    "11": {
+    "12": {
       "app": {
         "image": "quick-dev:php:laravel",
         "args": {
-          "PHP_VERSION": 8.3
+          "PHP_VERSION": 8.4
         }
       },
       "db": {
