@@ -347,7 +347,7 @@ class QuickDev
 
         if choice['app']['args']
             choice['app']['args'].each do |arg, value|
-                data[:services]['app'][:args][arg] = value
+                data[:services]['app'][:args][arg] = "#{value}"
             end
         end
 
