@@ -327,7 +327,8 @@ class QuickDev
             presets.each do |key, item|
                 item.each do |v, obj|
                     obj['type'] = key
-                    menu.choice key + ' // ' + v, obj
+                    desc = obj.key?('description') ? ' // ' + obj['description'] : ''
+                    menu.choice key + ' // ' + v + desc, obj
                 end
             end
 

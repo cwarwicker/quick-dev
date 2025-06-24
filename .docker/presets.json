@@ -15,7 +15,8 @@
       },
       "cache": {
         "image": "redis:latest"
-      }
+      },
+      "description": "php (8.3), mariadb (latest), redis (latest)"
     },
     "4.4+": {
       "app": {
@@ -35,7 +36,8 @@
       },
       "cache": {
         "image": "redis:7.4.2"
-      }
+      },
+      "description": "php (8.3), mariadb (11.7.2), redis (7.4.2)"
     },
     "4.2+": {
       "app": {
@@ -55,7 +57,8 @@
       },
       "cache": {
         "image": "redis:7.4.2"
-      }
+      },
+      "description": "php (8.2), mariadb (11.5.2), redis (7.4.2)"
     },
     "4.1+": {
       "app": {
@@ -75,7 +78,8 @@
       },
       "cache": {
         "image": "redis:7.4.2"
-      }
+      },
+      "description": "php (8.1), mariadb (11.5.2), redis (7.4.2)"
     }
   },
   "totara": {
@@ -94,7 +98,8 @@
       },
       "cache": {
         "image": "redis:7.4.2"
-      }
+      },
+      "description": "php (8.1), mariadb (11.7.2), redis (7.4.2)"
     }
   },
   "mahara": {
@@ -110,7 +115,8 @@
       },
       "db": {
         "image": "mysql:8.0"
-      }
+      },
+      "description": "php (8.1), mysql (8.0)"
     }
   },
   "laravel": {
@@ -126,7 +132,8 @@
       },
       "cache": {
         "image": "redis:latest"
-      }
+      },
+      "description": "php (8.4), mariadb (latest), redis (latest)"
     }
   },
   "django": {
