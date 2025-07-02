@@ -19,4 +19,8 @@ class Php
 
     end
 
+    def watch_logs(container, qd)
+        system("tail -F #{QUICK_DEV_PATH}/logs/#{qd.project.name}.log")
+    end
+
 end
