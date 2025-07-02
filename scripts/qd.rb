@@ -395,6 +395,10 @@ class QuickDev
             }
         end
 
+        # Every application has a log file mounted to /var/log/app.log.
+        log_path = QUICK_DEV_PATH + '/logs/' + self.project.name + '.log'
+        data[:services]['app'][:volumes] = data[:services]['app'][:volumes] + [log_path + ':/var/log/app.log']
+
         config_file = project.dir + '/cfg.yaml'
         self.save_config(data, config_file)
 
@@ -904,6 +908,10 @@ class QuickDev
             system("docker compose pull")
             system("docker compose build --no-cache")
         end
+
+        # Create or truncate the log file to be mounted.
+        system(": > #{QUICK_DEV_PATH}/logs/#{self.project.name}.log")
+        system("chmod 0777 #{QUICK_DEV_PATH}/logs/#{self.project.name}.log")
 
         # Run any service pre-up hooks.
         if not options[:nohooks]
