@@ -1064,6 +1064,15 @@ class QuickDev
                 new_file_name = project_path + 'htdocs/' + File.basename(file_name.gsub(".template", ""))
             end
 
+            # Mahoodle has separate config files which need to go to specific directories.
+            if main[:type] === 'mahoodle'
+                if file_name.include? ".mahara"
+                    new_file_name = project_path + 'mahara/htdocs/' + File.basename(file_name.gsub(".mahara.template", ""))
+                elsif file_name.include? ".moodle"
+                    new_file_name = project_path + 'moodle/' + File.basename(file_name.gsub(".moodle.template", ""))
+                end
+            end
+
             # Copy the file into the site directory.
             FileUtils.cp(file_name, new_file_name)
 

@@ -1,0 +1,34 @@
+moodle.%project.uri% {
+
+    root * /srv/www/%project.name%/moodle
+    file_server
+    tls internal
+
+    php_fastcgi %project.name%-app:9000 {
+        root /app/moodle
+    }
+
+    log {
+        output file /var/log/caddy/%project.name%.access.log
+        format console
+    }
+
+}
+
+mahara.%project.uri% {
+
+    root * /srv/www/%project.name%/mahara/htdocs
+    file_server
+    tls internal
+
+    php_fastcgi %project.name%-app:9000 {
+        root /app/mahara/htdocs
+    }
+
+    log {
+        output file /var/log/caddy/%project.name%.access.log
+        format console
+    }
+
+}
+

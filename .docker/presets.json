@@ -119,6 +119,29 @@
       "description": "php (8.1), mysql (8.0)"
     }
   },
+  "mahoodle": {
+    "4.5/25.04": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.1
+        },
+        "patches": [
+          "01_caddy"
+        ],
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
+      },
+      "db": {
+        "image": "mysql:8.0"
+      },
+      "cache": {
+        "image": "redis:7.4.2"
+      },
+      "description": "php (8.1), mysql (8.0), redis (7.4.2)"
+    }
+  },
   "laravel": {
     "12": {
       "app": {
