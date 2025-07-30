@@ -34,7 +34,7 @@ class Moodle < Php
           system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/phpunit/cli/init.php")
        else
           opts = ARGV[1..-1].join(' ')
-          system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/phpunit/cli/util.php --run #{opts}")
+          system("docker exec -it #{container} php #{self.class::RELATIVE_DIR}admin/tool/phpunit/cli/util.php --run #{opts} --testdox --display-warnings --display-errors --display-notices --colors=always")
        end
     end
 
