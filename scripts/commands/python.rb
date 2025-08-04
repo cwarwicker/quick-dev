@@ -1,4 +1,6 @@
-class Python
+require_relative 'all.rb'
+
+class Python < All
 
     def python(container, qd)
         cmd = ARGV[1..-1].join(' ')

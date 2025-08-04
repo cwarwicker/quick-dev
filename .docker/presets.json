@@ -1,6 +1,25 @@
 {
   "moodle": {
-    "5.0+": {
+    "5.1+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.4
+        },
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
+      },
+      "db": {
+        "image": "mariadb:latest"
+      },
+      "cache": {
+        "image": "redis:latest"
+      },
+      "description": "php (8.4), mariadb (latest), redis (latest)",
+      "min_version": 5.1
+    },
+    "5.0": {
       "app": {
         "image": "quick-dev:php:moodle",
         "args": {
@@ -16,7 +35,8 @@
       "cache": {
         "image": "redis:latest"
       },
-      "description": "php (8.3), mariadb (latest), redis (latest)"
+      "description": "php (8.3), mariadb (latest), redis (latest)",
+      "min_version": 5.0
     },
     "4.4+": {
       "app": {
@@ -37,7 +57,8 @@
       "cache": {
         "image": "redis:7.4.2"
       },
-      "description": "php (8.3), mariadb (11.7.2), redis (7.4.2)"
+      "description": "php (8.3), mariadb (11.7.2), redis (7.4.2)",
+      "min_version": 4.4
     },
     "4.2+": {
       "app": {
@@ -58,7 +79,8 @@
       "cache": {
         "image": "redis:7.4.2"
       },
-      "description": "php (8.2), mariadb (11.5.2), redis (7.4.2)"
+      "description": "php (8.2), mariadb (11.5.2), redis (7.4.2)",
+      "min_version": 4.2
     },
     "4.1+": {
       "app": {
@@ -79,7 +101,8 @@
       "cache": {
         "image": "redis:7.4.2"
       },
-      "description": "php (8.1), mariadb (11.5.2), redis (7.4.2)"
+      "description": "php (8.1), mariadb (11.5.2), redis (7.4.2)",
+      "min_version": 4.1
     }
   },
   "totara": {

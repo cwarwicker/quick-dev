@@ -2,6 +2,9 @@ require_relative 'moodle.rb'
 
 class Totara < Moodle
 
-    RELATIVE_DIR = "./server/"
+    def initialize(data)
+        @dir = './server'
+        @cli_dir = './server'
+    end
 
 end

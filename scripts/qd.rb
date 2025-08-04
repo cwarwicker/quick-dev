@@ -163,7 +163,7 @@ class QuickDev
     def get_class(class_name)
 
        # If the class exists return a new instance of it. Else return false.
-       return Module.const_get(class_name).new
+       return Module.const_get(class_name).new(self.project)
        rescue NameError
            return false
 
@@ -398,6 +398,10 @@ class QuickDev
         # Every application has a log file mounted to /var/log/app.log.
         log_path = QUICK_DEV_PATH + '/logs/' + self.project.name + '.log'
         data[:services]['app'][:volumes] = data[:services]['app'][:volumes] + [log_path + ':/var/log/app.log']
+
+        if choice['type'] == 'moodle'
+            data[:min_version] = choice['min_version']
+        end
 
         config_file = project.dir + '/cfg.yaml'
         self.save_config(data, config_file)

@@ -1,4 +1,6 @@
-class Php
+require_relative 'all.rb'
+
+class Php < All
 
     def composer(container, qd)
         cmd = ARGV[1..-1].join(' ')
