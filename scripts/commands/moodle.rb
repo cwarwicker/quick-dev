@@ -17,6 +17,24 @@ class Moodle < Php
 
    end
 
+   def cs(container, qd)
+
+      # Install moodle-cs package.
+      if ARGV[1] == 'install'
+         system("docker exec -it #{container} composer global require moodlehq/moodle-cs=dev-main")
+      end
+
+      path = ARGV[1]
+      if path.nil?
+         puts "Correct usage: qd cs path/to/file"
+         exit
+      end
+
+      system("docker exec -it #{container} /root/.config/composer/vendor/bin/phpcs #{path}")
+
+
+   end
+
    def install(container, qd)
       system("docker exec -it #{container} php #{self.cli_dir}/install_database.php --agree-license --adminuser=admin --adminpass=moodle --adminemail=admin@local.host --fullname=Moodle --shortname=Moodle")
    end
