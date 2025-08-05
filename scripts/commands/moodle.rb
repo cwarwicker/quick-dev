@@ -2,10 +2,11 @@ require_relative 'php.rb'
 
 class Moodle < Php
 
-   attr_reader :dir, :cli_dir
+   attr_reader :dir, :cli_dir, :min_version
 
-    def initialize(data)
+   def initialize(data)
 
+      @min_version = data.config[:min_version]
       if (data.config[:min_version] >= 5.1)
          @dir = './public'
          @cli_dir = './admin/cli'
@@ -56,7 +57,12 @@ class Moodle < Php
          # Clear out the behat data directory.
          system("docker exec -itd #{container} rm -rf /var/www/behatdata")
          # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
-         system("docker exec -itd #{container} php -S #{container}:80 -t /app")
+         if self.min_version >= 5.1
+            dir = 'public/'
+         else
+            dir = ''
+         end
+         system("docker exec -itd #{container} php -S #{container}:80 -t /app/#{dir}")
          # Initialise the behat environment.
          system("docker exec -it #{container} php #{self.dir}/admin/tool/behat/cli/init.php")
       elsif opt === "help"
