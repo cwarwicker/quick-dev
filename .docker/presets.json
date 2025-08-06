@@ -17,7 +17,8 @@
         "image": "redis:latest"
       },
       "description": "php (8.4), mariadb (latest), redis (latest)",
-      "min_version": 5.1
+      "min_version": 5.1,
+      "path": "/public"
     },
     "5.0": {
       "app": {

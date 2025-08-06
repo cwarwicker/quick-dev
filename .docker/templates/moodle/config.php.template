@@ -22,9 +22,9 @@ $CFG->wwwroot   = (isset($_SERVER['HTTP_HOST'])) ? 'https://' . $_SERVER['HTTP_H
 $CFG->dataroot  = '/var/www/data';
 $CFG->directorypermissions = 02777;
 
-@error_reporting(E_ALL | E_STRICT); // NOT FOR PRODUCTION SERVERS!
+@error_reporting(E_ALL); // NOT FOR PRODUCTION SERVERS!
 @ini_set('display_errors', '1');    // NOT FOR PRODUCTION SERVERS!
-$CFG->debug = (E_ALL | E_STRICT);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
+$CFG->debug = (E_ALL);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
 $CFG->debugdisplay = 1;             // NOT FOR PRODUCTION SERVERS!
 $CFG->themedesignermode = false; // NOT FOR PRODUCTION SERVERS!
 $CFG->cachejs = false; // NOT FOR PRODUCTION SERVERS!

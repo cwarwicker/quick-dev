@@ -7,7 +7,7 @@ require_relative 'const.rb'
 
 class Project
 
-    attr_accessor :services, :config, :name, :uri, :url, :db, :dir, :working_dir
+    attr_accessor :services, :config, :name, :uri, :url, :db, :dir, :working_dir, :path
 
     # Create an instance of the Project class and bootstrap it with some data from the path.
     def self.create()
@@ -59,6 +59,7 @@ class Project
         project.uri = project.name + '.localhost'
         project.url = 'https://' + project.name + '.localhost'
         project.db = project.config[:db][:type] if !project.config[:db].nil?
+        project.path = project.config[:path] if !project.config[:path].nil?
 
         return project
 

@@ -1,11 +1,11 @@
 %project.uri%, behat.%project.uri% {
 
-    root * /srv/www/%project.name%
+    root * /srv/www/%project.name%%project.path%
     file_server
     tls internal
 
     php_fastcgi %project.name%-app:9000 {
-        root /app
+        root /app%project.path%
     }
 
     log {

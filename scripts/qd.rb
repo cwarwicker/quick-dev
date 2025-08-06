@@ -403,6 +403,10 @@ class QuickDev
             data[:min_version] = choice['min_version']
         end
 
+        if !choice['path'].nil?
+            data[:path] = choice['path']
+        end
+
         config_file = project.dir + '/cfg.yaml'
         self.save_config(data, config_file)
 
@@ -1023,6 +1027,7 @@ class QuickDev
             '%project.uri%' => self.project.uri,
             '%project.working_dir%' => self.project.working_dir,
             '%project.db%' => (self.project.services['db']) ? self.project.services['db'][:type] : '',
+            '%project.path%' => self.project.path,
             '%root%' => QUICK_DEV_PATH,
         }
 
