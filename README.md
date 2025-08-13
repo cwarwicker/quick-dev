@@ -114,11 +114,14 @@ Currently Quick-Dev supports the following project types:
 - Laravel
 - Moodle
 - Totara
+- Mahara
 - Python
 - Django
 - Other
 
 You can still use Quick-Dev with any type of project you like, it's just that project-specific configuration and commands have been added for the supported list. If your project type is not in the list, just choose `Other` and custom build it.
+
+**Generally you'd want to use a preset wherever possible, e.g. for things like Moodle and Totara, as it'll come with the required mount files and hooks.**
 
 ### Images
 You can choose from the pre-built images for the supported project types (See: `.docker/images/` if you want to see what they contain). Or you can choose `custom` and just type in any docker image to pull.
@@ -194,6 +197,8 @@ These are pre-defined commands which are specific to certain project types. Proj
 
 `qd artisan [command]` - Run the specified artisan command on the application container.
 
+`qd refresh [args]` - Runs `artisan migrate:fresh && php artisan db:seed <args>` to refresh the database and seed it either with default seeder or one passed in
+
 **Moodle**
 
 `qd install` - Runs the Moodle installation script, using pre-defined defaults.
@@ -202,7 +207,9 @@ These are pre-defined commands which are specific to certain project types. Proj
 
 `qd purge` - Runs the purge caches script.
 
-`qd makecourse [size [name]` - Runs the make test course script and makes a course of the given size and name.
+`qd makecourse [size] [name]` - Runs the make test course script and makes a course of the given size and name.
+
+`qd makequiz [course] [questions]` - Generates a quiz on a course by its shortname with the specified number of questions. E.g. `qd makequiz ABC-101 10` for 10 questions on the quiz on course ABC-101
 
 `qd phpunit init` - Initialises phpunit for the site (must be run before any phpunit commands).
 
@@ -211,6 +218,16 @@ These are pre-defined commands which are specific to certain project types. Proj
 `qd behat init` - Initialises behat for the site (must be run before any behat commands).
 
 `qd behat [command]` - Runs the specified behat tests (Default profile: chrome)
+
+`qd cs init` - Initalises code sniffer for the site
+
+`qd cs [path]` - Runs the moodle code sniffer checks against the specified path
+
+**Mahara**
+
+`qd install` - Runs the Mahara installation script, using pre-defined defaults.
+
+`qd upgrade` - Runs the database upgrade script.
 
 **Python**
 
@@ -228,6 +245,8 @@ These are pre-defined commands which are specific to certain project types. Proj
 `qd composer [command]` - Run the specified composer command on the application container.
 
 `qd npm [command]` - Run the specified npm command on the application container.
+
+`qd watch_logs` - Starts watching the log file for the site, if it's being used `quick-dev/logs/<sitename>.log`
 
 
 ## Roadmap
