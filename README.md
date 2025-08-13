@@ -191,6 +191,8 @@ These are pre-defined commands which are specific to certain project types. Proj
 
 **PHP**
 
+`qd composer [args]` - Runs composer with specified args
+
 `qd install_debug` - Install debugging services to be used by Buggregator service.
 
 **Laravel**

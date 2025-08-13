@@ -37,6 +37,9 @@ WORKDIR /app
 
 ARG PHP_VERSION
 FROM base AS laravel
+RUN composer global require laravel/installer
+ENV PATH="/root/.config/composer/vendor/bin:${PATH}"
+
 
 ############################## MOODLE STAGE ########################################
 
