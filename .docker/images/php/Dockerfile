@@ -8,7 +8,7 @@ FROM php:${PHP_VERSION}-fpm AS base
 RUN apt-get update && apt-get -y upgrade
 
 # Install required packages.
-RUN apt-get -y install curl git libcurl3-dev libfreetype6-dev libjpeg-dev libonig-dev libpng-dev libpq-dev libxml2-dev libxslt-dev libzip-dev nano nodejs npm zip
+RUN apt-get -y install curl git ghostscript libcurl3-dev libfreetype6-dev libjpeg-dev libonig-dev libpng-dev libpq-dev libxml2-dev libxslt-dev libzip-dev nano nodejs npm zip
 
 # Installing additional PHP modules
 RUN docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql
