@@ -12,7 +12,7 @@ class Moodle < Php
          @cli_dir = './admin/cli'
       else
          @dir = './'
-         @cli_dir = './'
+         @cli_dir = './admin/cli'
       end
 
    end
