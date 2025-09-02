@@ -21,7 +21,9 @@ class Moodle < Php
 
       # Install moodle-cs package.
       if ARGV[1] == 'install'
+         system("docker exec -it #{container} composer global config minimum-stability dev")
          system("docker exec -it #{container} composer global require moodlehq/moodle-cs=dev-main")
+         exit
       end
 
       path = ARGV[1]
@@ -65,7 +67,7 @@ class Moodle < Php
          system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
       else
          opts = ARGV[1..-1].join(' ')
-         system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --display-warnings --display-errors --display-notices --colors=always")
+         system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
       end
    end
 
