@@ -28,6 +28,17 @@ services:
             - ./.docker/caddy:/etc/caddy/sites
         networks:
             - quick-dev-network
+    keycloak:
+        image: quay.io/keycloak/keycloak:latest
+        container_name: quick-dev-keycloak
+        ports:
+            - "8081:8080"
+        environment:
+            KC_BOOTSTRAP_ADMIN_USERNAME: admin
+            KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+        command: start-dev
+        networks:
+            - quick-dev-network
     selenium-hub:
         container_name: quick-dev-selenium-hub
         image: selenium/hub:latest
@@ -65,6 +76,16 @@ services:
         - "7902:7900"
         networks:
         - quick-dev-network
+    answer:
+        container_name: quick-dev-answer
+        image: apache/answer
+        ports:
+        - '8082:80'
+        restart: on-failure
+        volumes:
+        - answer-data:/data
+volumes:
+    answer-data:
 
 networks:
     quick-dev-network:
