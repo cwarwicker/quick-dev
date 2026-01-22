@@ -2,6 +2,7 @@
 ARG NODE_VERSION=latest
 FROM node:${NODE_VERSION} AS base
 EXPOSE 3000
+EXPOSE 80
 WORKDIR /app
 
 ############################## SVELTE ########################################

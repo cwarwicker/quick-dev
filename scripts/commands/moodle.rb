@@ -104,4 +104,9 @@ class Moodle < Php
       system("docker exec -it #{container} php #{self.cli_dir}/cron.php #{opts}")
    end
 
+   def grunt(container, qd)
+      dir = ARGV[1]
+      system("docker exec -it #{container} bash -l -c 'nvm install && nvm use && npm i && npm install -g grunt-cli && cd #{dir} && grunt amd'")
+   end
+
 end

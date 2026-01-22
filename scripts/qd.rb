@@ -74,6 +74,8 @@ class QuickDev
                 self.run_dashboard()
             when 'open'
                 self.run_open()
+            when 'add_service'
+                self.run_add_service()
             else
                 self.run_cmd()
 
@@ -318,6 +320,43 @@ class QuickDev
 
     end
 
+    def ask_for_service_names(count)
+
+        reserved_names = ['db', 'cache']
+        names = []
+
+        count.times do |i|
+            service_name = self.prompt.ask("Service [#{i + 1}] name (e.g. 'app', 'backend', etc...)", required: true, default: "app") do |p|
+                p.validate ->(input) { input =~ /^[a-z]+$/ and not names.include?(input) and not reserved_names.include?(input) }
+                p.messages[:valid?] = "Service name must be lowercase [a-z] and not one of the reserved names: db, cache"
+            end
+            names.push(service_name)
+        end
+
+        return names
+
+    end
+
+    def run_add_service()
+
+        @project = Project.load()
+        data = project.config
+
+        # Ask if we want to backup config file.
+        self.ask_config_backup(project)
+
+        # Ask for it's name.
+        my_services = self.ask_for_service_names(1)
+
+        # Gather service data.
+        self.ask_for_service(data, my_services)
+
+        # Save the updated config
+        config_file = project.dir + '/cfg.yaml'
+        self.save_config(data, config_file)
+
+    end
+
     def run_config_preset()
 
         # Load the presets.
@@ -412,6 +451,20 @@ class QuickDev
 
     end
 
+    def ask_config_backup(project)
+
+        # Check if the config file already exists.
+        config_file = project.dir + '/cfg.yaml'
+        docker_file = project.dir + '/docker-compose.yml'
+        if File.exist?(config_file)
+            if self.prompt.select("Existing config file(s) found. Do you wish to make a backup?", %w(yes no)) === 'yes'
+                FileUtils.cp(config_file, config_file + '.backup')
+                FileUtils.cp(docker_file, docker_file + '.backup') if File.exist?(docker_file)
+            end
+        end
+
+    end
+
     # Run the config command on your project.
     def run_config()
 
@@ -425,16 +478,11 @@ class QuickDev
         end.parse!(into: options)
 
         # Check if the config file already exists.
-        config_file = project.dir + '/cfg.yaml'
-        docker_file = project.dir + '/docker-compose.yml'
-        if File.exist?(config_file)
-            if self.prompt.select("Existing config file(s) found. Do you wish to make a backup?", %w(yes no)) === 'yes'
-                FileUtils.cp(config_file, config_file + '.backup')
-                FileUtils.cp(docker_file, docker_file + '.backup') if File.exist?(docker_file)
-            end
-        end
+        self.ask_config_backup(project)
 
         # Delete the config files.
+        config_file = project.dir + '/cfg.yaml'
+        docker_file = project.dir + '/docker-compose.yml'
         File.delete(config_file) if File.exist?(config_file)
         File.delete(docker_file) if File.exist?(docker_file)
 
@@ -451,18 +499,99 @@ class QuickDev
         data[:services] = {}
 
         # No longer hard-coding services like "app". Now it asks how many you want and lets you name them.
-        reserved_names = ['db', 'cache']
         num_services = self.prompt.ask("How many application services do you need?", convert: :int, default: 1)
-        my_services = []
+        my_services = self.ask_for_service_names(num_services)
 
-        num_services.times do |i|
-            service_name = self.prompt.ask("Service [#{i + 1}] name (e.g. 'app', 'backend', etc...)", required: true, default: "app") do |p|
-                p.validate ->(input) { input =~ /^[a-z]+$/ and not my_services.include?(input) and not reserved_names.include?(input) }
-                p.messages[:valid?] = "Service name must be lowercase [a-z] and not one of the reserved names: db, cache"
-            end
-            my_services.push(service_name)
+        # Gather service data for each of the application services we need.
+        self.ask_for_service(data, my_services)
+
+        # Choose the other services required for the app.
+        other_services = self.prompt.multi_select("Which other services do you need?") do |menu|
+           menu.default 1,2
+           menu.choice :Database, 'db'
+           menu.choice :Caching, 'cache'
         end
 
+        # If we need a DB, what engine and version do we want?
+        if other_services.include?('db')
+
+            data[:services]['db'] = {}
+
+            # Get the DB engine.
+            data[:services]['db'][:type] = self.prompt.select("Choose a database engine") do |menu|
+                services['db'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
+
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:services]['db'][:type]} version") do |menu|
+                services['db'].each do |obj|
+                    if obj['name'] === data[:services]['db'][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
+
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:services]['db'][:version] = self.prompt.ask("Which #{data[:services]['db'][:type]} version would you like? ")
+            else
+                data[:services]['db'][:version] = which_version
+            end
+
+            # Image
+            data[:services]['db'][:image] = data[:services]['db'][:type] + ':' + data[:services]['db'][:version]
+
+        end
+
+        # If we want a caching service.
+        if other_services.include?('cache')
+
+            data[:services]['cache'] = {}
+
+            # Get the cache engine.
+            data[:services]['cache'][:type] = self.prompt.select("Choose a caching system") do |menu|
+                services['cache'].each do |obj|
+                    menu.choice obj['name']
+                end
+            end
+
+            # Get the version.
+            which_version = self.prompt.select("Choose a #{data[:services]['cache'][:type]} version") do |menu|
+                services['cache'].each do |obj|
+                    if obj['name'] === data[:services]['cache'][:type]
+                        obj['versions'].each do |v|
+                            menu.choice v
+                        end
+                        menu.choice :custom
+                    end
+                end
+            end
+
+            # If we chose custom, ask for a version tag.
+            if which_version === 'custom'
+                data[:services]['cache'][:version] = self.prompt.ask("Which #{data['cache'][:type]} version would you like? ")
+            else
+                data[:services]['cache'][:version] = which_version
+            end
+
+            # Image
+            data[:services]['cache'][:image] = data[:services]['cache'][:type] + ':' + data[:services]['cache'][:version]
+
+        end
+
+        self.save_config(data, config_file)
+
+    end
+
+    def ask_for_service(data, my_services)
+
+        # Preset services.
+        services = JSON.parse(File.read(QUICK_DEV_PATH + '/.docker/services.json'))
 
         # Loop through the services.
         my_services.each do |name|
@@ -568,87 +697,6 @@ class QuickDev
             data[:services][name][:local_dir] = self.prompt.ask("#{name} // What directory do you want mounted to the service container?", default: "./")
 
         end
-
-        # Choose the other services required for the app.
-        other_services = self.prompt.multi_select("Which other services do you need?") do |menu|
-           menu.default 1,2
-           menu.choice :Database, 'db'
-           menu.choice :Caching, 'cache'
-        end
-
-        # If we need a DB, what engine and version do we want?
-        if other_services.include?('db')
-
-            data[:services]['db'] = {}
-
-            # Get the DB engine.
-            data[:services]['db'][:type] = self.prompt.select("Choose a database engine") do |menu|
-                services['db'].each do |obj|
-                    menu.choice obj['name']
-                end
-            end
-
-            # Get the version.
-            which_version = self.prompt.select("Choose a #{data[:services]['db'][:type]} version") do |menu|
-                services['db'].each do |obj|
-                    if obj['name'] === data[:services]['db'][:type]
-                        obj['versions'].each do |v|
-                            menu.choice v
-                        end
-                        menu.choice :custom
-                    end
-                end
-            end
-
-            # If we chose custom, ask for a version tag.
-            if which_version === 'custom'
-                data[:services]['db'][:version] = self.prompt.ask("Which #{data[:services]['db'][:type]} version would you like? ")
-            else
-                data[:services]['db'][:version] = which_version
-            end
-
-            # Image
-            data[:services]['db'][:image] = data[:services]['db'][:type] + ':' + data[:services]['db'][:version]
-
-        end
-
-        # If we want a caching service.
-        if other_services.include?('cache')
-
-            data[:services]['cache'] = {}
-
-            # Get the cache engine.
-            data[:services]['cache'][:type] = self.prompt.select("Choose a caching system") do |menu|
-                services['cache'].each do |obj|
-                    menu.choice obj['name']
-                end
-            end
-
-            # Get the version.
-            which_version = self.prompt.select("Choose a #{data[:services]['cache'][:type]} version") do |menu|
-                services['cache'].each do |obj|
-                    if obj['name'] === data[:services]['cache'][:type]
-                        obj['versions'].each do |v|
-                            menu.choice v
-                        end
-                        menu.choice :custom
-                    end
-                end
-            end
-
-            # If we chose custom, ask for a version tag.
-            if which_version === 'custom'
-                data[:services]['cache'][:version] = self.prompt.ask("Which #{data['cache'][:type]} version would you like? ")
-            else
-                data[:services]['cache'][:version] = which_version
-            end
-
-            # Image
-            data[:services]['cache'][:image] = data[:services]['cache'][:type] + ':' + data[:services]['cache'][:version]
-
-        end
-
-        self.save_config(data, config_file)
 
     end
 
