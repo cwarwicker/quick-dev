@@ -1,10 +1,10 @@
 <?php
 class QuickDev
 {
-    public static function log($value): void
+    public static function log(...$value): void
     {
         global $CFG;
-        $f = fopen($CFG->dataroot . '/quick-dev.log', 'a+');
+        $f = fopen($CFG->dirroot . '/quick-dev.log', 'a+');
         fwrite($f, print_r($value, true) . "\n");
         fclose($f);
     }

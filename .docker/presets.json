@@ -107,23 +107,41 @@
     }
   },
   "totara": {
-    "16+": {
+    "20+": {
       "app": {
         "image": "quick-dev:php:moodle",
         "args": {
-          "PHP_VERSION": 8.1
+          "PHP_VERSION": 8.4
         },
         "patches": [
           "01_caddy"
         ]
       },
       "db": {
-        "image": "mariadb:11.7.2"
+        "image": "postgres:17.4"
+      },
+      "cache": {
+        "image": "redis:8.6.1"
+      },
+      "description": "php (8.4), postgres (17.4), redis (8.6.1)"
+    },
+    "16+": {
+      "app": {
+        "image": "quick-dev:php:moodle",
+        "args": {
+          "PHP_VERSION": 8.0
+        },
+        "patches": [
+          "01_caddy"
+        ]
+      },
+      "db": {
+        "image": "postgres:17.4"
       },
       "cache": {
         "image": "redis:7.4.2"
       },
-      "description": "php (8.1), mariadb (11.7.2), redis (7.4.2)"
+      "description": "php (8.0), postgres (17.4), redis (7.4.2)"
     }
   },
   "mahara": {
