@@ -4,6 +4,13 @@ ARG PHP_VERSION=8.3.12
 # Use latest php:fpm as base image.
 FROM php:${PHP_VERSION}-fpm AS base
 
+# Fix apt sources for EOL Debian releases (Buster and older).
+RUN if grep -q "buster" /etc/os-release 2>/dev/null || grep -q "buster" /etc/apt/sources.list 2>/dev/null; then \
+      sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list && \
+      sed -i 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' /etc/apt/sources.list && \
+      sed -i '/buster-updates/d' /etc/apt/sources.list; \
+    fi
+
 # Run apt update and upgrade.
 RUN apt-get update
 
@@ -12,12 +19,22 @@ RUN apt-get -y install curl git ghostscript libcurl3-dev libfreetype6-dev libicu
 
 # Installing additional PHP modules
 RUN docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql
-RUN docker-php-ext-configure gd --with-jpeg --with-freetype
+
+# Has to be done differently for 7.0-3.
+RUN if echo "${PHP_VERSION}" | grep -qE "^7\.[0-3]\."; then \
+      docker-php-ext-configure gd --with-jpeg-dir=/usr/lib --with-freetype-dir=/usr/include/freetype2; \
+    else \
+      docker-php-ext-configure gd --with-jpeg --with-freetype; \
+    fi
+
 RUN docker-php-ext-install curl dom gd intl mbstring mysqli pdo_mysql pgsql pdo_pgsql soap xml xsl zip
 
-# Redis seems to need to be done via pecl instead of ext install.
-RUN pecl install redis && docker-php-ext-enable redis
-RUN pecl install xhprof && docker-php-ext-enable xhprof
+# Don;t bother trying for old php 7 versions.
+RUN if ! echo "${PHP_VERSION}" | grep -qE "^7\.[0-3]\."; then \
+        # Redis seems to need to be done via pecl instead of ext install.
+        pecl install redis && docker-php-ext-enable redis && \
+        pecl install xhprof && docker-php-ext-enable xhprof; \
+    fi
 
 # Install Composer.
 COPY --from=composer:2.7.7 /usr/bin/composer /usr/local/bin/composer
