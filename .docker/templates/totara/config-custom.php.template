@@ -1,0 +1,17 @@
+<?php
+class QuickDev
+{
+    public static function log(...$value): void
+    {
+        global $CFG;
+        $f = fopen($CFG->dirroot . '/quick-dev.log', 'a+');
+        fwrite($f, print_r($value, true) . "\n");
+        fclose($f);
+    }
+}
+
+if (file_exists('.debug/autoload.php')) {
+    require_once '.debug/autoload.php';
+} else {
+    require_once 'vendor/autoload.php';
+}
