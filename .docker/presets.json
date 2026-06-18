@@ -145,6 +145,21 @@
     }
   },
   "mahara": {
+    "26.04+": {
+      "app": {
+        "image": "quick-dev:php:mahara",
+        "args": {
+          "PHP_VERSION": 8.2
+        },
+        "hooks": {
+          "post_up": ["bash /mnt/post_up.sh"]
+        }
+      },
+      "db": {
+        "image": "mysql:8.0"
+      },
+      "description": "php (8.2), mysql (8.0)"
+    },
     "25.04+": {
       "app": {
         "image": "quick-dev:php:mahara",
