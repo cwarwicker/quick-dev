@@ -74,15 +74,15 @@ class Moodle < Php
    def behat(container, qd)
       opt = ARGV[1]
       if opt === "init"
-         # Clear out the behat data directory.
-         system("docker exec -itd #{container} rm -rf /var/www/behatdata")
          # Start a local webserver because it needs to be able to connect locally and can't easily go through caddy from here.
          if self.min_version >= 5.1
             dir = 'public/'
          else
             dir = ''
          end
-         system("docker exec -itd #{container} php -S #{container}:80 -t /app/#{dir}")
+         system("docker exec -itd #{container} php -S 0.0.0.0:80 -t /app/#{dir}")
+         # Clear out the behat data directory - This doesn't work for some reason. Always complains it still exists.
+         system("docker exec -itd #{container} rm -rf /var/www/behatdata")
          # Initialise the behat environment.
          system("docker exec -it #{container} php #{self.dir}/admin/tool/behat/cli/init.php")
       elsif opt === "help"

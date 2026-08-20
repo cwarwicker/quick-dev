@@ -118,9 +118,13 @@ class Project
 
             data['services'][name] = {
                 'container_name': self.name + '-' + name,
-                'networks': [
-                  'quick-dev-network'
-                ],
+                'networks': {
+                  'quick-dev-network': {
+                    'aliases': [
+                        self.name + '-' + name + '.test'
+                    ]
+                  }
+                },
                 'volumes': [],
                 'stdin_open': true,
                 'extra_hosts': [
