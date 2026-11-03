@@ -1,3 +1,4 @@
+require 'open3'
 require_relative 'php.rb'
 
 class Moodle < Php
@@ -61,25 +62,72 @@ class Moodle < Php
       system("docker exec -it #{container} php /mnt/bulk_create_questions.php --course=#{course} --questions=#{questions}")
    end
 
+   PHPUNIT_DBS = ['mariadb', 'postgres']
+
+   # Run a command against every phpunit DB type at the same time.
+   # By default output is buffered per DB (they can't share a TTY) and printed as each one finishes.
+   # With stream: true, output is printed line by line as it arrives, prefixed with the DB type.
+   def run_on_all_dbs(container, cmd, stream: false)
+      if stream
+         puts "Running on #{PHPUNIT_DBS.join(', ')} in parallel..."
+      else
+         puts "Running on #{PHPUNIT_DBS.join(', ')} in parallel (output appears as each finishes)..."
+      end
+
+      results = Queue.new
+      print_lock = Mutex.new
+      width = PHPUNIT_DBS.map(&:length).max
+      PHPUNIT_DBS.each { |type|
+         Thread.new {
+            full_cmd = "docker exec -e PHPUNIT_DB=#{type} #{container} #{cmd}"
+            if stream
+               prefix = "[#{type.ljust(width)}] "
+               status = Open3.popen2e(full_cmd) { |stdin, out, wait_thr|
+                  stdin.close
+                  out.each_line { |line|
+                     print_lock.synchronize { puts prefix + line.chomp }
+                  }
+                  wait_thr.value
+               }
+               results << [type, nil, status]
+            else
+               out, status = Open3.capture2e(full_cmd)
+               results << [type, out, status]
+            end
+         }
+      }
+
+      summary = PHPUNIT_DBS.size.times.map {
+         type, out, status = results.pop
+         unless stream
+            puts "\n===== #{type} ====="
+            puts out
+         end
+         [type, status.success?]
+      }
+
+      puts "\n===== Summary ====="
+      summary.each { |type, ok|
+         puts "#{type}: #{ok ? "\e[32mPASS\e[0m" : "\e[31mFAIL\e[0m"}"
+      }
+      exit 1 unless summary.all? { |_, ok| ok }
+   end
+
    def phpunit(container, qd)
       opt = ARGV[1]
       if opt === "init"
          # Do we want to parallel run the tests on all available DB types? If so we need to setup them all up.
          if ARGV.include? '--parallel'
-            ['mariadb', 'postgres'].each { |type|
-               system("docker exec -e PHPUNIT_DB=#{type} -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
-            }
+            run_on_all_dbs(container, "php #{self.dir}/admin/tool/phpunit/cli/init.php", stream: true)
          else
-            system("docker exec -e PHPUNIT_DB=postgres -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
+            system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
          end
       else
          # Do we want to parallel run the tests on all available DB types?
          if ARGV.include? '--parallel'
             ARGV.delete('--parallel')
             opts = ARGV[1..-1].join(' ')
-            ['mariadb', 'postgres'].each { |type|
-               system("docker exec -e PHPUNIT_DB=#{type} -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
-            }
+            run_on_all_dbs(container, "php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
 
          else
             opts = ARGV[1..-1].join(' ')
