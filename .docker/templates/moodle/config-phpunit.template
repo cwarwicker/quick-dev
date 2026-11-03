@@ -1,0 +1,20 @@
+<?php
+if (getenv('PHPUNIT_DB') === 'mariadb') {
+    $CFG->phpunit_dbtype = 'mariadb';
+    $CFG->phpunit_dblibrary = 'native';
+    $CFG->phpunit_dbhost = 'phpunit-mariadb';
+    $CFG->phpunit_dbname = 'phpunit';
+    $CFG->phpunit_dbuser = 'phpunit';
+    $CFG->phpunit_dbpass = 'phpunit';
+    $CFG->phpunit_dboptions = ['dbport' => '3306', 'dbpersist' => false];
+    $CFG->phpunit_dataroot = '/var/www/phpunitdata/mariadb';
+} else if (getenv('PHPUNIT_DB') === 'postgres') {
+    $CFG->phpunit_dbtype = 'pgsql';
+    $CFG->phpunit_dblibrary = 'native';
+    $CFG->phpunit_dbhost = 'phpunit-postgres';
+    $CFG->phpunit_dbname = 'phpunit';
+    $CFG->phpunit_dbuser = 'phpunit';
+    $CFG->phpunit_dbpass = 'phpunit';
+    $CFG->phpunit_dboptions = ['dbport' => '5432', 'dbpersist' => false];
+    $CFG->phpunit_dataroot = '/var/www/phpunitdata/postgres';
+}

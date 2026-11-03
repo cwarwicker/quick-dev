@@ -59,4 +59,8 @@ if (file_exists(__DIR__ . '/config-custom.php')) {
     require_once __DIR__ . '/config-custom.php';
 }
 
+if (getenv('PHPUNIT_DB') && file_exists(__DIR__ . '/config-phpunit.php')) {
+    require_once __DIR__ . '/config-phpunit.php';
+}
+
 require_once(__DIR__ . '/lib/setup.php');

@@ -84,6 +84,46 @@ services:
         restart: on-failure
         volumes:
         - answer-data:/data
+    phpunit-mariadb:
+        container_name: phpunit-mariadb
+        networks:
+          quick-dev-network:
+            aliases:
+            - phpunit-mariadb.test
+        volumes: []
+        stdin_open: true
+        extra_hosts:
+        - host.docker.internal:host-gateway
+        image: mariadb:latest
+        ports:
+        - 3339:3306
+        command:
+        - "--character-set-server=utf8mb4"
+        - "--collation-server=utf8mb4_bin"
+        - "--innodb_file_per_table=On"
+        - "--wait-timeout=28800"
+        environment:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_USER: phpunit
+          MYSQL_PASSWORD: phpunit
+          MYSQL_DATABASE: phpunit
+    phpunit-postgres:
+        container_name: phpunit-postgres
+        networks:
+          quick-dev-network:
+            aliases:
+            - phpunit-postgres.test
+        volumes: []
+        stdin_open: true
+        extra_hosts:
+        - host.docker.internal:host-gateway
+        image: postgres:latest
+        ports:
+        - 5439:5432
+        environment:
+          POSTGRES_USER: phpunit
+          POSTGRES_PASSWORD: phpunit
+          POSTGRES_DB: phpunit
 volumes:
     answer-data:
 

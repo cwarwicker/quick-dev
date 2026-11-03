@@ -64,10 +64,27 @@ class Moodle < Php
    def phpunit(container, qd)
       opt = ARGV[1]
       if opt === "init"
-         system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
+         # Do we want to parallel run the tests on all available DB types? If so we need to setup them all up.
+         if ARGV.include? '--parallel'
+            ['mariadb', 'postgres'].each { |type|
+               system("docker exec -e PHPUNIT_DB=#{type} -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
+            }
+         else
+            system("docker exec -e PHPUNIT_DB=postgres -it #{container} php #{self.dir}/admin/tool/phpunit/cli/init.php")
+         end
       else
-         opts = ARGV[1..-1].join(' ')
-         system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
+         # Do we want to parallel run the tests on all available DB types?
+         if ARGV.include? '--parallel'
+            ARGV.delete('--parallel')
+            opts = ARGV[1..-1].join(' ')
+            ['mariadb', 'postgres'].each { |type|
+               system("docker exec -e PHPUNIT_DB=#{type} -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
+            }
+
+         else
+            opts = ARGV[1..-1].join(' ')
+            system("docker exec -it #{container} php #{self.dir}/admin/tool/phpunit/cli/util.php --run #{opts} --testdox --colors=always")
+         end
       end
    end
 
